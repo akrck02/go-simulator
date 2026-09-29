@@ -73,3 +73,18 @@ func TestFromTagsBuildsTheRequestedMotions(t *testing.T) {
 		t.Fatalf("expected 3 systems, got %d", len(systems))
 	}
 }
+
+func TestTidesTurnTheWaterVariation(t *testing.T) {
+	world := scene.New()
+	world.Environment.Water = &scene.Water{Variation: &scene.LevelVariation{}}
+	tides := &Tides{PeriodSeconds: 40, Enabled: true}
+	tides.Step(world, 10)
+	if angle := world.Environment.Water.Variation.Angle; math.Abs(float64(angle)-math.Pi/2) > 1e-5 {
+		t.Fatalf("a quarter of the period should turn a quarter: %v", angle)
+	}
+	tides.Enabled = false
+	tides.Step(world, 10)
+	if angle := world.Environment.Water.Variation.Angle; math.Abs(float64(angle)-math.Pi/2) > 1e-5 {
+		t.Fatalf("disabled tides should not move")
+	}
+}

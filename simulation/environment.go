@@ -77,3 +77,24 @@ func (drift *CloudDrift) Step(world *scene.Scene, step float64) {
 	sky.Clouds.Offset[0] += wind.Direction[0] * distance
 	sky.Clouds.Offset[2] += wind.Direction[2] * distance
 }
+
+// Tides raise and lower the water: they turn the angle of its level variation a full turn per
+// period. The heights and the phase at every place come with the scene (Water.Variation).
+type Tides struct {
+	PeriodSeconds float64 // seconds per tidal cycle (0 = 60)
+	Enabled       bool
+}
+
+// Step advances the tide by the share of the cycle that passed.
+func (tides *Tides) Step(world *scene.Scene, step float64) {
+	water := world.Environment.Water
+	if !tides.Enabled || water == nil || water.Variation == nil {
+		return
+	}
+	period := tides.PeriodSeconds
+	if period <= 0 {
+		period = 60
+	}
+	angle := float64(water.Variation.Angle) + 2*math.Pi*step/period
+	water.Variation.Angle = float32(math.Mod(angle, 2*math.Pi))
+}

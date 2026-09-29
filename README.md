@@ -15,6 +15,8 @@ During development the renderer is used from the folder next to this one (`repla
   * `DayCycle`: turns the sun around the celestial pole; the stars follow it.
   * `Gusts`: varies the wind strength and direction around its initial value.
   * `CloudDrift`: moves the clouds with the wind (`Sky.Clouds.Offset`).
+  * `Tides`: turns the angle of the water's level variation (`Water.Variation`) a full turn per
+    period; the heights and the phase at every place come with the scene.
   * `Bobbing`, `Spin`, `PathFollower`: node motions (a boat rocking, sails turning, a ship on a route).
   * `FromTags`: builds the node motions that glTF node extras ask for.
 
@@ -34,12 +36,14 @@ go run ./cmd/simulator -day -day-length 300 scene.glb
 ```
 It accepts all the viewer flags (`-walk`, `-night`, `-capture`, `-benchmark`…) and its own:
 `-day` (start with the day cycle running), `-day-length` (seconds per day, 120 by default),
-`-wind-variation` (0..1) and `-wind-veering` (radians).
+`-wind-variation` (0..1), `-wind-veering` (radians), `-tide-period` (seconds per tidal cycle; by
+default 12.42 h in proportion to the day length) and `-no-tides`.
 
 | Key | Action |
 |---|---|
 | `P` | Pause or resume |
 | `T` | Start or stop the day cycle |
+| `M` | Start or stop the tides |
 | `,` `.` | Halve or double the speed of time |
 
 Plus the viewer's controls (see go-renderer's README).
