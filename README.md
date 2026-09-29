@@ -9,7 +9,8 @@ During development the renderer is used from the folder next to this one (`repla
 ## Packages
 * `simulation`: a `Simulation` runs `System`s at a fixed time step (`Advance`), with `Speed` and
   `Paused`. Systems change node transforms, the environment, or meshes and instances (marked
-  `Dirty` so the renderer uploads them again). Heavy per-vertex motion is left to the GPU through
+  `Dirty` so the renderer uploads them again; when only some instances move, `MarkChanged(indices...)`
+  uploads just those). Heavy per-vertex motion is left to the GPU through
   the scene state the renderer reads (`Environment.Wind`, `Material.Sway`).
   * `DayCycle`: turns the sun around the celestial pole; the stars follow it.
   * `Gusts`: varies the wind strength and direction around its initial value.
