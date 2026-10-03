@@ -1,49 +1,122 @@
 # go-simulator
 
-Simulations for scenes drawn by [go-renderer](../go-renderer): things that move, wind gusts,
-drifting clouds and the passing of the day. The renderer stays agnostic: it draws the scene as it
-is, and this project changes the scene between frames through `viewer.Run`'s update function.
+The library that lets [go-renderer](../go-renderer) show simulations. Simulators are **plugins**:
+separate programs, in their own repositories and in any language, that the host starts at
+runtime. A **rules file** says which plugins to use and which of their rules to run, with what
+parameters and on which clock. Plugins never touch the renderer: they read the world and answer
+with **changes** (add, remove, modify, set a field, change the environment, emit an event). The
+host applies them to the world, forwards them to the plugins that read that part of the world,
+and the bridge shows them in the scene.
+
+```
+go-renderer      draws a scene; knows nothing about simulations
+   ▲
+go-simulator     world model · change protocol · host engine · rules files · renderer bridge
+   ▲   (plugins use the plugin, world and spatial packages; never the renderer)
+plugins          go-simulator-motion · urban growth · landscape · …
+```
 
 During development the renderer is used from the folder next to this one (`replace` in `go.mod`).
 
-## Packages
-* `simulation`: a `Simulation` runs `System`s at a fixed time step (`Advance`), with `Speed` and
-  `Paused`. Systems change node transforms, the environment, or meshes and instances (marked
-  `Dirty` so the renderer uploads them again; when only some instances move, `MarkChanged(indices...)`
-  uploads just those). Heavy per-vertex motion is left to the GPU through
-  the scene state the renderer reads (`Environment.Wind`, `Material.Sway`).
-  * `DayCycle`: turns the sun around the celestial pole; the stars follow it.
-  * `Gusts`: varies the wind strength and direction around its initial value.
-  * `CloudDrift`: moves the clouds with the wind (`Sky.Clouds.Offset`).
-  * `Tides`: turns the angle of the water's level variation (`Water.Variation`) a full turn per
-    period; the heights and the phase at every place come with the scene.
-  * `Bobbing`, `Spin`, `PathFollower`: node motions (a boat rocking, sails turning, a ship on a route).
-  * `FromTags`: builds the node motions that glTF node extras ask for.
+## Run
 
-## Node extras read by `FromTags`
-| Extra | Motion |
-|---|---|
-| `"bob": {"height": h, "period": s, "roll": radians}` | Floats up and down with a slight roll |
-| `"spin": {"axis": [x, y, z], "speed": radians per second}` | Turns around a local axis |
-| `"path": {"points": [[x, y, z], ...], "speed": units per second, "loop": true}` | Moves along the points, facing where it goes (+Z forward); without `loop` it turns around at the end |
-
-Each motion sets the node transform from the transform it had at the start, so a node takes one motion.
-
-## Simulator
 ```bash
-go run ./cmd/simulator scene.glb
-go run ./cmd/simulator -day -day-length 300 scene.glb
+go run ./cmd/simulator -rules ../go-simulator-motion/examples/living-scene.yaml scene.glb
 ```
-It accepts all the viewer flags (`-walk`, `-night`, `-capture`, `-benchmark`…) and its own:
-`-day` (start with the day cycle running), `-day-length` (seconds per day, 120 by default),
-`-wind-variation` (0..1), `-wind-veering` (radians), `-tide-period` (seconds per tidal cycle; by
-default 12.42 h in proportion to the day length) and `-no-tides`.
 
-| Key | Action |
+It accepts all the viewer flags (`-walk`, `-night`, `-capture`, `-benchmark`…). Keys, besides the
+viewer's: `P` pauses, `,` `.` halve or double the speed of time, and every `toggle_key` in the
+rules file turns its rule on and off. Without `-rules` it only shows the scene.
+
+## Rules files
+
+```yaml
+plugins:
+  - name: motion
+    command: [go-simulator-motion]   # program and arguments; relative paths start at this file
+    directory: ..                     # optional: where the program runs
+stages:
+  - name: motion
+    clock: realtime                   # or {unit: year, from: 0, to: 100, step: 1}
+    rules:
+      - rule: day_cycle               # or motion/day_cycle when several plugins offer it
+        with: {seconds_per_day: 120}  # parameters
+        enabled: false
+        toggle_key: T
+      - rule: tides
+        every: 0.5                    # run when this much stage time passed (default: every step)
+      - rule: entity_motion
+        at: 10                        # run once at this stage time
+        name: late_motion             # instance name (default: stage/rule)
+```
+
+Rules run in the file's order; consecutive rules of one plugin go in a single request.
+Real-time stages advance with the viewer (`Engine.Advance`); stepped stages advance one step at a
+time (`Engine.StepStage`) until their `to`.
+
+## Packages
+
+| Package | What it is |
 |---|---|
-| `P` | Pause or resume |
-| `T` | Start or stop the day cycle |
-| `M` | Start or stop the tides |
-| `,` `.` | Halve or double the speed of time |
+| `world` | The neutral state: entities (id, kind, parent, transform, shape, properties), fields (named grids), the environment (sun, wind, clouds, tide), changes and change sets, and interests (what a rule reads) |
+| `protocol` | Messages between host and plugins and their framing over standard input and output |
+| `plugin` | The toolkit for writing a plugin in Go: `Plugin`, `Definition`, `Rule`, `Context`, `Parameters`, `Serve` |
+| `spatial` | Renderer-free vectors and matrices for plugins (same layout as go-renderer) |
+| `host` | Starts plugins (`Launch` for programs, `Connect` for built-ins), attaches rules and runs the stages (`Engine`) |
+| `configuration` | Reads and checks rules files |
+| `bridge` | Builds the initial world from a go-renderer scene and shows every change set in it |
 
-Plus the viewer's controls (see go-renderer's README).
+## Writing a plugin in Go
+
+```go
+type lighthouse struct{ angle float64 }
+
+func (rule *lighthouse) Step(context *plugin.Context) error {
+	rule.angle += context.Step
+	beam := spatial.RotationY(rule.angle)
+	context.Modify(&world.Entity{Identifier: "lighthouse-beam", Transform: &beam})
+	return nil
+}
+
+func main() {
+	turn := plugin.Definition{
+		Description: protocol.RuleDescription{Name: "turn_beam", Reads: world.Interest{Kinds: []string{"beam"}}},
+		New:         func(plugin.Parameters) (plugin.Rule, error) { return &lighthouse{}, nil },
+	}
+	coast := &plugin.Plugin{Name: "coast", Version: "0.1.0", Rules: []plugin.Definition{turn}}
+	if err := coast.Serve(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+A rule can also implement `Start(context)` to do something once at the beginning. Changes a rule
+makes are applied at once to the plugin's copy of the world, so it and the next rules see them.
+Logs go to standard error; standard output carries the protocol.
+
+## Writing a plugin in another language
+
+The protocol is plain bytes, so any language works. Every message is a frame: a 4-byte
+little-endian length, a JSON header of that length — `{"kind", "body", "attachments": [byte
+lengths]}` — and then the attachments. Field values travel as attachments of little-endian
+float32, one per `set_field` change, in the order those changes appear in the message.
+
+| Host sends | Plugin answers |
+|---|---|
+| `describe` | `description`: `{protocol: 1, name, version, rules: [{name, parameters, reads, writes}]}` |
+| `attach` `{instance, rule, parameters}` | `attached` `{instance}` |
+| `start` `{snapshot: change set}` | `changes`: a change set |
+| `step` `{stage, time, step, instances, incoming: [changes]}` | `changes`: a change set |
+| `stop` | (exits) |
+
+Any answer can instead be `error` `{message}`; the host stops the simulation with it. See
+`protocol` and `world` for the exact JSON of changes.
+
+## Known limits
+
+- A field change (`set_field`) is kept in the world and forwarded to plugins, but the bridge does
+  not draw fields yet: they will become terrain and water when the landscape plugin needs them.
+- Removed meshes leave the scene, but go-renderer has no call yet to free their GPU memory; a
+  simulation that adds and removes thousands of different meshes will need one.
+- Plugins still resolve go-renderer through this module's requirements, so a plugin's `go.mod`
+  needs the same `replace` for it during development.
