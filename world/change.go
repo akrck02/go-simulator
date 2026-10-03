@@ -10,6 +10,7 @@ const (
 	SetField       Operation = "set_field"       // a field is created or some of its cells change (Field)
 	SetEnvironment Operation = "set_environment" // the environment changes (Environment as a patch)
 	Emit           Operation = "emit"            // something happened worth telling (Event); the world does not change
+	ClearArea      Operation = "clear_area"      // hide what the drawn scene shows in an area (Area); the world does not change
 )
 
 // Change is one thing that happens to the world. Only the member that matches the operation is set.
@@ -20,6 +21,17 @@ type Change struct {
 	Field       *FieldPatch  `json:"field,omitempty"`
 	Environment *Environment `json:"environment,omitempty"`
 	Event       *Event       `json:"event,omitempty"`
+	Area        *Area        `json:"area,omitempty"`
+}
+
+// Area is a part of the ground where a simulation takes over from the drawn scene: the triangles of
+// the named scene nodes whose middle falls inside it are removed, and so are the instances
+// (trees, for example) standing in it. Simulations use it to replace what the scene was built with
+// (an old town, a forest) by what they grow. Nodes are the scene's node names.
+type Area struct {
+	Outlines [][][2]float32 `json:"outlines"`       // ground polygons (x, z), without repeating the first point
+	Keep     [][][2]float32 `json:"keep,omitempty"` // polygons inside the outlines that are spared (holes)
+	Nodes    []string       `json:"nodes"`
 }
 
 // Event is something that happened: "second wall raised", with free data.
@@ -54,6 +66,9 @@ func SetFieldValues(patch *FieldPatch) Change { return Change{Operation: SetFiel
 func ChangeEnvironment(patch *Environment) Change {
 	return Change{Operation: SetEnvironment, Environment: patch}
 }
+
+// ClearSceneArea returns a change that hides what some scene nodes show in an area.
+func ClearSceneArea(area *Area) Change { return Change{Operation: ClearArea, Area: area} }
 
 // EmitEvent returns a change that tells something happened.
 func EmitEvent(name string, data map[string]any) Change {

@@ -4,7 +4,11 @@
 // recorded, forwarded to plugins and replayed.
 package world
 
-import "github.com/akrck02/go-simulator/spatial"
+import (
+	"slices"
+
+	"github.com/akrck02/go-simulator/spatial"
+)
 
 // Identifier names an entity; it is stable for the whole life of the entity.
 type Identifier string
@@ -19,15 +23,47 @@ type Entity struct {
 	Properties map[string]any  `json:"properties,omitempty"` // free data: "floors": 3, "use": "shop"
 }
 
-// Shape says how an entity looks. Only one way is used: an existing mesh by name or a primitive.
+// Shape says how an entity looks. Only one way is used: an existing mesh by name, a primitive, an
+// outline on the ground or a line on the ground.
+//
+// Outlines and lines are drawn in world coordinates on the ground plane (x, z) and follow the
+// terrain; the entity's transform does not move them. An outline is a flat area (a parcel, a
+// square) or, with a height, a volume (a house, a tower); a line is a strip of some width (a
+// street) or, with a height, a wall. Shapes with the same Batch are drawn as one mesh, which keeps
+// thousands of small things cheap to draw.
 type Shape struct {
 	Mesh      string          `json:"mesh,omitempty"`      // reuse a mesh the scene already has
 	Primitive string          `json:"primitive,omitempty"` // "box"
 	Size      spatial.Vector  `json:"size,omitempty"`      // primitive size (width, height, depth)
+	Offset    *spatial.Vector `json:"offset,omitempty"`    // primitive centre relative to the transform; nil = resting on it
+	Outline   [][2]float32    `json:"outline,omitempty"`   // ground polygon (x, z), without repeating the first point
+	Line      [][2]float32    `json:"line,omitempty"`      // ground polyline (x, z)
+	Width     float32         `json:"width,omitempty"`     // width of a line
+	Height    float32         `json:"height,omitempty"`    // height of an outline or a line above the ground (0 = flat)
+	Lift      float32         `json:"lift,omitempty"`      // how far a flat shape floats over the ground, so it does not flicker
+	Batch     string          `json:"batch,omitempty"`     // shapes of the same batch become one mesh
 	Color     *[4]float32     `json:"color,omitempty"`     // linear RGBA
 	Hidden    bool            `json:"hidden,omitempty"`
-	Offset    *spatial.Vector `json:"offset,omitempty"` // primitive centre relative to the transform; nil = resting on it
 }
+
+// Copy returns a deep copy of the shape.
+func (shape *Shape) Copy() *Shape {
+	copied := *shape
+	copied.Outline = slices.Clone(shape.Outline)
+	copied.Line = slices.Clone(shape.Line)
+	if shape.Color != nil {
+		color := *shape.Color
+		copied.Color = &color
+	}
+	if shape.Offset != nil {
+		offset := *shape.Offset
+		copied.Offset = &offset
+	}
+	return &copied
+}
+
+// OnTheGround tells whether the shape is drawn from ground coordinates (an outline or a line).
+func (shape *Shape) OnTheGround() bool { return len(shape.Outline) > 0 || len(shape.Line) > 0 }
 
 // HasProperty tells whether the entity has a property, whatever its value.
 func (entity *Entity) HasProperty(name string) bool {
@@ -43,8 +79,7 @@ func (entity *Entity) Copy() *Entity {
 		copied.Transform = &transform
 	}
 	if entity.Shape != nil {
-		shape := *entity.Shape
-		copied.Shape = &shape
+		copied.Shape = entity.Shape.Copy()
 	}
 	copied.Properties = copyProperties(entity.Properties)
 	return &copied
@@ -64,8 +99,7 @@ func (entity *Entity) merge(patch *Entity) {
 		entity.Transform = &transform
 	}
 	if patch.Shape != nil {
-		shape := *patch.Shape
-		entity.Shape = &shape
+		entity.Shape = patch.Shape.Copy()
 	}
 	entity.Properties = mergeProperties(entity.Properties, patch.Properties)
 }

@@ -19,14 +19,17 @@ type Bridge struct {
 	parents    map[*scene.Node]*scene.Node // nil value = a top-level node
 	meshes     map[string]*scene.Mesh      // the scene's meshes by name, for shapes that reuse one
 	primitives map[primitiveKey]*scene.Mesh
-	Ignored    map[world.Operation]int // changes the scene has no way to show yet, counted
+	batches    map[string]*batch
+	batchOf    map[world.Identifier]string // batch each batched entity is drawn in
+	Ignored    map[world.Operation]int     // changes the scene has no way to show yet, counted
 }
 
 // FromScene describes a scene as a world: every node becomes an entity and the environment
 // comes along. It returns the world and the bridge that keeps the scene in step with it.
 func FromScene(drawn *scene.Scene) (*world.World, *Bridge) {
 	bridge := &Bridge{scene: drawn, nodes: map[world.Identifier]*scene.Node{}, parents: map[*scene.Node]*scene.Node{},
-		meshes: map[string]*scene.Mesh{}, primitives: map[primitiveKey]*scene.Mesh{}, Ignored: map[world.Operation]int{}}
+		meshes: map[string]*scene.Mesh{}, primitives: map[primitiveKey]*scene.Mesh{}, batches: map[string]*batch{},
+		batchOf: map[world.Identifier]string{}, Ignored: map[world.Operation]int{}}
 	initial := world.New()
 	for _, node := range drawn.Nodes {
 		bridge.describeNode(initial, node, nil, "")

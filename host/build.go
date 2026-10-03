@@ -44,7 +44,7 @@ func (engine *Engine) launchPlugins(rules *configuration.Configuration, builtins
 
 func launchPlugin(rules *configuration.Configuration, settings configuration.Plugin, builtins map[string]Builtin) (*Plugin, error) {
 	if !settings.Builtin {
-		return Launch(settings.Name, rules.CommandPath(settings), rules.WorkingDirectory(settings))
+		return Launch(settings.Name, rules.CommandPath(settings), rules.WorkingDirectory(settings), rules.Directory)
 	}
 	serve, found := builtins[settings.Name]
 	if !found {
@@ -56,7 +56,7 @@ func launchPlugin(rules *configuration.Configuration, settings configuration.Plu
 func (engine *Engine) attachStages(rules *configuration.Configuration) error {
 	names := map[string]bool{}
 	for _, settings := range rules.Stages {
-		stage := &Stage{Name: settings.Name, Clock: Clock(settings.Clock)}
+		stage := &Stage{Name: settings.Name, Clock: Clock(settings.Clock), Snapshots: settings.Snapshots}
 		for _, ruleSettings := range settings.Rules {
 			rule, err := engine.attachRule(stage, ruleSettings, names)
 			if err != nil {

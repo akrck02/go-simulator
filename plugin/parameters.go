@@ -1,6 +1,32 @@
 package plugin
 
-import "github.com/akrck02/go-simulator/spatial"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/akrck02/go-simulator/spatial"
+)
+
+// rulesDirectoryVariable is set by the host: the folder of the rules file (see host.RulesDirectoryVariable).
+const rulesDirectoryVariable = "GO_SIMULATOR_RULES_DIRECTORY"
+
+// Path turns a path written in a rules file into one the plugin can open: "~/" starts at the home
+// folder and relative paths start at the rules file's folder (or the plugin's, when unknown).
+func Path(written string) string {
+	if rest, fromHome := strings.CutPrefix(written, "~/"); fromHome {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, rest)
+		}
+	}
+	if filepath.IsAbs(written) {
+		return written
+	}
+	if directory := os.Getenv(rulesDirectoryVariable); directory != "" {
+		return filepath.Join(directory, written)
+	}
+	return written
+}
 
 // Parameters are the values a rules file gives a rule. They arrive as JSON values: numbers are
 // float64, lists are []any and maps are map[string]any.

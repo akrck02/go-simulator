@@ -101,7 +101,26 @@ func (session *session) start(message protocol.Message) error {
 		}
 		reply.Changes = append(reply.Changes, context.changes...)
 	}
+	if err := session.afterStep("", session.world.Time, 0, &reply); err != nil {
+		return err
+	}
 	return session.connection.Send(protocol.Changes, &reply)
+}
+
+// afterStep runs the plugin's AfterStep hook, if any, and adds its changes to the reply.
+func (session *session) afterStep(stage string, time, step float64, reply *world.ChangeSet) error {
+	if session.plugin.AfterStep == nil {
+		return nil
+	}
+	context := session.context(stage, "", time, step)
+	if err := session.plugin.AfterStep(context); err != nil {
+		return fmt.Errorf("after the step: %w", err)
+	}
+	if err := context.failureOf(); err != nil {
+		return err
+	}
+	reply.Changes = append(reply.Changes, context.changes...)
+	return nil
 }
 
 func (session *session) step(message protocol.Message) error {
@@ -124,6 +143,9 @@ func (session *session) step(message protocol.Message) error {
 			return err
 		}
 		reply.Changes = append(reply.Changes, context.changes...)
+	}
+	if err := session.afterStep(request.Stage, request.Time, request.Step, &reply); err != nil {
+		return err
 	}
 	return session.connection.Send(protocol.Changes, &reply)
 }
