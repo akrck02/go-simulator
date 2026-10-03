@@ -2,7 +2,10 @@ module github.com/akrck02/go-simulator
 
 go 1.25.6
 
-require github.com/akrck02/go-renderer v0.0.0
+require (
+	github.com/akrck02/go-renderer v0.0.0
+	gopkg.in/yaml.v3 v3.0.1
+)
 
 require (
 	github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276 // indirect
