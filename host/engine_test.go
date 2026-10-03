@@ -179,3 +179,28 @@ func TestProgramsArePlugins(t *testing.T) {
 		t.Fatalf("the program should stop cleanly: %v", err)
 	}
 }
+
+func TestPacedStagesStepWithTheSecondsThatPass(t *testing.T) {
+	seen := 0
+	engine := buildEngine(t, `
+plugins:
+  - {name: town, builtin: true}
+stages:
+  - name: growth
+    clock: {unit: year, from: 0, to: 3, step: 1, pace: 0.5}
+    rules:
+      - rule: build
+`, &seen)
+	_, _ = engine.Advance(0.4)
+	if houses := len(engine.World.Entities()); houses != 0 {
+		t.Fatalf("0.4 s is less than one step of 0.5 s: %d houses", houses)
+	}
+	_, _ = engine.Advance(0.7)
+	if houses := len(engine.World.Entities()); houses != 2 {
+		t.Fatalf("1.1 s is two steps: %d houses", houses)
+	}
+	_, _ = engine.Advance(10)
+	if houses := len(engine.World.Entities()); houses != 3 {
+		t.Fatalf("the clock ends at year 3: %d houses", houses)
+	}
+}

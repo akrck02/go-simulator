@@ -86,7 +86,7 @@ func (world *World) ApplyChange(change Change) error {
 		return world.setField(change.Field)
 	case SetEnvironment:
 		return world.setEnvironment(change.Environment)
-	case Emit:
+	case Emit, ClearArea:
 		return nil
 	}
 	return fmt.Errorf("unknown operation %q", change.Operation)

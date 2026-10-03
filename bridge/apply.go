@@ -11,6 +11,7 @@ import (
 
 // Apply shows a change set in the scene. Call it on the thread that draws, between frames.
 func (bridge *Bridge) Apply(set world.ChangeSet) error {
+	defer bridge.rebuildChangedBatches()
 	for index, change := range set.Changes {
 		if err := bridge.applyChange(change); err != nil {
 			return fmt.Errorf("showing change %d (%s) from %q: %w", index, change.Operation, set.Origin, err)
@@ -33,6 +34,9 @@ func (bridge *Bridge) applyChange(change world.Change) error {
 	case world.SetField:
 		bridge.Ignored[change.Operation]++
 		return nil
+	case world.ClearArea:
+		bridge.clearArea(change.Area)
+		return nil
 	}
 	return nil
 }
@@ -42,11 +46,11 @@ func (bridge *Bridge) add(entity *world.Entity) error {
 	if entity.Transform != nil {
 		node.Transform = graphics.Mat4(*entity.Transform)
 	}
-	if err := bridge.shape(node, entity.Shape); err != nil {
-		return err
-	}
 	parent, err := bridge.parentNode(entity.Parent)
 	if err != nil {
+		return err
+	}
+	if err := bridge.shape(entity.Identifier, node, entity.Shape); err != nil {
 		return err
 	}
 	bridge.attach(node, parent)
@@ -89,8 +93,10 @@ func (bridge *Bridge) remove(identifier world.Identifier) error {
 	} else {
 		parent.Children = slices.DeleteFunc(parent.Children, func(candidate *scene.Node) bool { return candidate == node })
 	}
+	if holdsGround(node) {
+		bridge.scene.InvalidateGround()
+	}
 	bridge.forget(node)
-	bridge.scene.InvalidateGround()
 	return nil
 }
 
@@ -103,8 +109,22 @@ func (bridge *Bridge) forget(node *scene.Node) {
 	for identifier, candidate := range bridge.nodes {
 		if candidate == node {
 			delete(bridge.nodes, identifier)
+			bridge.leaveBatch(identifier)
 		}
 	}
+}
+
+// holdsGround tells whether a node or its children walk on a ground mesh.
+func holdsGround(node *scene.Node) bool {
+	if node.Mesh != nil && node.Mesh.Ground {
+		return true
+	}
+	for _, child := range node.Children {
+		if holdsGround(child) {
+			return true
+		}
+	}
+	return false
 }
 
 func (bridge *Bridge) modify(patch *world.Entity) error {
@@ -116,7 +136,7 @@ func (bridge *Bridge) modify(patch *world.Entity) error {
 		node.Transform = graphics.Mat4(*patch.Transform)
 	}
 	if patch.Shape != nil {
-		if err := bridge.shape(node, patch.Shape); err != nil {
+		if err := bridge.shape(patch.Identifier, node, patch.Shape); err != nil {
 			return err
 		}
 	}
@@ -125,10 +145,15 @@ func (bridge *Bridge) modify(patch *world.Entity) error {
 }
 
 // shape gives a node the mesh a shape asks for.
-func (bridge *Bridge) shape(node *scene.Node, shape *world.Shape) error {
+func (bridge *Bridge) shape(identifier world.Identifier, node *scene.Node, shape *world.Shape) error {
 	if shape == nil {
 		return nil
 	}
+	if shape.OnTheGround() {
+		bridge.placeGroundShape(identifier, node, shape)
+		return nil
+	}
+	bridge.leaveBatch(identifier)
 	node.Hidden = shape.Hidden
 	switch {
 	case shape.Mesh != "":

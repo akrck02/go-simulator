@@ -13,7 +13,7 @@
 //	        enabled: false
 //	        toggle_key: T
 //	  - name: city
-//	    clock: {unit: year, from: 0, to: 100, step: 1}
+//	    clock: {unit: year, from: 0, to: 100, step: 1, pace: 0.5}
 //	    rules:
 //	      - rule: urban/prune_empty_streets
 //	        every: 5
@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -45,9 +46,10 @@ type Plugin struct {
 
 // Stage is a group of rules sharing a clock.
 type Stage struct {
-	Name  string `yaml:"name"`
-	Clock Clock  `yaml:"clock"`
-	Rules []Rule `yaml:"rules"`
+	Name      string    `yaml:"name"`
+	Clock     Clock     `yaml:"clock"`
+	Rules     []Rule    `yaml:"rules"`
+	Snapshots []float64 `yaml:"snapshots"` // stage times at which a run without a window saves the world
 }
 
 // Clock is "realtime" or a stepped clock {unit, from, to, step}.
@@ -57,6 +59,7 @@ type Clock struct {
 	From     float64 `yaml:"from"`
 	To       float64 `yaml:"to"`
 	Step     float64 `yaml:"step"`
+	Pace     float64 `yaml:"pace"` // real seconds per step when shown in a viewer (0 = only on request)
 }
 
 // Rule is one use of a rule.
@@ -159,23 +162,34 @@ func checkStage(stage Stage, seen map[string]bool) []error {
 	return problems
 }
 
-// CommandPath resolves a plugin's program: a relative path with a folder in it starts at the
-// rules file's folder; a bare name is looked up in the PATH as usual.
+// CommandPath resolves a plugin's program: "~/" starts at the home folder, a relative path with a
+// folder in it starts at the rules file's folder, and a bare name is looked up in the PATH.
 func (configuration *Configuration) CommandPath(plugin Plugin) []string {
 	command := append([]string(nil), plugin.Command...)
-	if len(command) > 0 && !filepath.IsAbs(command[0]) && filepath.Base(command[0]) != command[0] {
-		command[0] = filepath.Join(configuration.Directory, command[0])
+	if len(command) > 0 && filepath.Base(command[0]) != command[0] {
+		command[0] = configuration.Resolve(command[0])
 	}
 	return command
 }
 
-// WorkingDirectory is where a plugin's program runs.
+// WorkingDirectory is where a plugin's program runs (default: the rules file's folder).
 func (configuration *Configuration) WorkingDirectory(plugin Plugin) string {
 	if plugin.Directory == "" {
 		return configuration.Directory
 	}
-	if filepath.IsAbs(plugin.Directory) {
-		return plugin.Directory
+	return configuration.Resolve(plugin.Directory)
+}
+
+// Resolve turns a path of the rules file into an absolute one: "~/" starts at the home folder and
+// relative paths at the rules file's folder.
+func (configuration *Configuration) Resolve(path string) string {
+	if rest, fromHome := strings.CutPrefix(path, "~/"); fromHome {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, rest)
+		}
 	}
-	return filepath.Join(configuration.Directory, plugin.Directory)
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(configuration.Directory, path)
 }

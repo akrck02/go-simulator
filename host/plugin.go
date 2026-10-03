@@ -29,14 +29,20 @@ type Plugin struct {
 	pending     []world.Change // changes by other plugins, sent with the next step
 }
 
+// RulesDirectoryVariable is the environment variable that tells a plugin program where the rules
+// file is, so relative paths in its parameters can start there (see plugin.Path).
+const RulesDirectoryVariable = "GO_SIMULATOR_RULES_DIRECTORY"
+
 // Launch starts a plugin program and asks it to describe itself. The command runs in a directory
 // (empty = the current one); its standard error goes to the host's, prefixed with the name.
-func Launch(name string, command []string, directory string) (*Plugin, error) {
+// rulesDirectory is passed to the program in RulesDirectoryVariable.
+func Launch(name string, command []string, directory, rulesDirectory string) (*Plugin, error) {
 	if len(command) == 0 {
 		return nil, fmt.Errorf("plugin %q has no command", name)
 	}
 	process := exec.Command(command[0], command[1:]...)
 	process.Dir = directory
+	process.Env = append(os.Environ(), RulesDirectoryVariable+"="+rulesDirectory)
 	process.Stderr = &prefixedWriter{prefix: "[" + name + "] ", target: os.Stderr, startOfLine: true}
 	input, err := process.StdinPipe()
 	if err != nil {

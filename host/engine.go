@@ -19,20 +19,24 @@ type Engine struct {
 
 // Stage is a group of rules sharing a clock.
 type Stage struct {
-	Name  string
-	Clock Clock
-	Rules []*RuleInstance
-	Time  float64 // current time in the clock's unit
+	Name      string
+	Clock     Clock
+	Rules     []*RuleInstance
+	Time      float64   // current time in the clock's unit
+	Snapshots []float64 // times at which a run without a window saves the world
+	waited    float64   // real seconds since the last paced step
 }
 
 // Clock says how a stage's time advances. A real-time clock advances with the seconds that pass;
-// a stepped clock advances by Step from From to To, one step each time it is asked to.
+// a stepped clock advances by Step from From to To, one step each time it is asked to or, with a
+// Pace, one step every Pace real seconds while the simulation is shown.
 type Clock struct {
 	Realtime bool
 	Unit     string // "second", "year", "step"…: only for people and plugins to read
 	From     float64
 	To       float64
 	Step     float64
+	Pace     float64
 }
 
 // RuleInstance is one use of a rule in a stage.
@@ -71,17 +75,34 @@ func (engine *Engine) Start() ([]world.ChangeSet, error) {
 	return sets, nil
 }
 
-// Advance moves every real-time stage forward by some seconds, scaled by Speed.
+// Advance moves every real-time stage forward by some seconds, scaled by Speed, and gives paced
+// stepped stages the steps those seconds are worth.
 func (engine *Engine) Advance(seconds float64) ([]world.ChangeSet, error) {
 	if engine.Paused {
 		return nil, nil
 	}
+	scaled := seconds * engine.speed()
 	var sets []world.ChangeSet
 	for _, stage := range engine.Stages {
-		if !stage.Clock.Realtime {
-			continue
+		stepped, err := engine.advanceStage(stage, scaled)
+		sets = append(sets, stepped...)
+		if err != nil {
+			return sets, err
 		}
-		stepped, err := engine.runStage(stage, seconds*engine.speed())
+	}
+	return sets, nil
+}
+
+func (engine *Engine) advanceStage(stage *Stage, seconds float64) ([]world.ChangeSet, error) {
+	if stage.Clock.Realtime {
+		return engine.runStage(stage, seconds)
+	}
+	if stage.Clock.Pace <= 0 {
+		return nil, nil
+	}
+	var sets []world.ChangeSet
+	for stage.waited += seconds; stage.waited >= stage.Clock.Pace && !stage.Finished(); stage.waited -= stage.Clock.Pace {
+		stepped, err := engine.runStage(stage, stage.Clock.Step)
 		sets = append(sets, stepped...)
 		if err != nil {
 			return sets, err

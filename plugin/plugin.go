@@ -24,6 +24,10 @@ type Plugin struct {
 	Version string
 	Summary string
 	Rules   []Definition
+	// AfterStep, when set, runs once after the rules of every start and step request, with the
+	// same context (Instance is empty). Plugins whose rules share state use it to describe the
+	// result once instead of after every rule.
+	AfterStep func(context *Context) error
 }
 
 // Definition describes a rule and builds an instance of it from its parameters.
@@ -93,6 +97,11 @@ func (context *Context) SetField(patch *world.FieldPatch) {
 // SetEnvironment patches the environment.
 func (context *Context) SetEnvironment(patch *world.Environment) {
 	context.record(world.ChangeEnvironment(patch))
+}
+
+// ClearSceneArea hides what some nodes of the drawn scene show in an area (see world.Area).
+func (context *Context) ClearSceneArea(area *world.Area) {
+	context.record(world.ClearSceneArea(area))
 }
 
 // Emit tells that something happened.
