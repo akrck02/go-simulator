@@ -35,12 +35,25 @@ func (running *session) update(_ *scene.Scene, state *input.State, step float64)
 }
 
 func (running *session) show(sets []world.ChangeSet) error {
-	for _, set := range sets {
-		if err := running.bridge.Apply(set); err != nil {
-			return err
+	return running.bridge.ApplyAll(sets)
+}
+
+// advance moves every stepped stage forward some steps before the viewer opens.
+func (running *session) advance(steps int) error {
+	var sets []world.ChangeSet
+	for _, stage := range running.engine.Stages {
+		if stage.Clock.Realtime {
+			continue
+		}
+		for range steps {
+			stepped, err := running.engine.StepStage(stage.Name)
+			sets = append(sets, stepped...)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	return nil
+	return running.show(sets)
 }
 
 // stop freezes the simulation after an error; the scene stays on screen as it was.
