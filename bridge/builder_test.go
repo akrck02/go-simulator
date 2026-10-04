@@ -16,9 +16,9 @@ func (builder *roofBuilder) Handles(kind string, _ map[string]any) bool {
 	return kind == "house" || kind == "street"
 }
 
-func (builder *roofBuilder) Build(entities, context []*world.Entity, ground func(x, z float32) (float32, bool)) []*scene.Mesh {
+func (builder *roofBuilder) Build(entities, context []*world.Entity, ground func(x, z float32) (float32, bool)) []*scene.Node {
 	builder.entities, builder.context = len(entities), len(context)
-	return []*scene.Mesh{{Name: "roofs", Positions: []float32{0, 0, 0, 1, 0, 0, 0, 0, 1}}}
+	return []*scene.Node{{Name: "roofs", Mesh: &scene.Mesh{Name: "roofs", Positions: []float32{0, 0, 0, 1, 0, 0, 0, 0, 1}}}}
 }
 
 func groundEntity(identifier, kind, batch string) *world.Entity {

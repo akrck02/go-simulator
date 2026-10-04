@@ -5,10 +5,14 @@
 package scenebuilder
 
 import (
+	"math"
+
+	"github.com/akrck02/go-renderer/graphics"
 	"github.com/akrck02/go-renderer/scene"
 	"github.com/akrck02/go-scene-builder/build"
 	"github.com/akrck02/go-scene-builder/mapdata"
 	"github.com/akrck02/go-scene-builder/mesh"
+	"github.com/akrck02/go-scene-builder/models"
 	"github.com/akrck02/go-scene-builder/style"
 	"github.com/akrck02/go-simulator/world"
 )
@@ -19,16 +23,21 @@ const detail = 0.0125
 // Builder draws the entities its style rules match.
 type Builder struct {
 	rules     *style.Rules
+	library   *models.Library
 	materials map[string]*scene.Material
 }
 
-// Load reads the style rules.
+// Load reads the style rules and the model libraries they name.
 func Load(path string) (*Builder, error) {
 	rules, err := style.Load(path)
 	if err != nil {
 		return nil, err
 	}
-	return &Builder{rules: rules, materials: map[string]*scene.Material{}}, nil
+	library, err := models.Load(rules.ModelFiles()...)
+	if err != nil {
+		return nil, err
+	}
+	return &Builder{rules: rules, library: library, materials: map[string]*scene.Material{}}, nil
 }
 
 // Handles tells whether some rule gives entities of this kind a shape.
@@ -37,8 +46,9 @@ func (builder *Builder) Handles(kind string, properties map[string]any) bool {
 	return matched && resolved.Section("shape").Text("role", "none") != "none"
 }
 
-// Build turns entities into meshes, with context entities taking part in the relations.
-func (builder *Builder) Build(entities, context []*world.Entity, ground func(x, z float32) (float32, bool)) []*scene.Mesh {
+// Build turns entities into nodes (meshes and instanced models), with context entities taking part
+// in the relations.
+func (builder *Builder) Build(entities, context []*world.Entity, ground func(x, z float32) (float32, bool)) []*scene.Node {
 	heights := build.HeightFunction(func(east, north float64) float64 {
 		height, found := ground(float32(east), float32(-north))
 		if !found {
@@ -48,12 +58,33 @@ func (builder *Builder) Build(entities, context []*world.Entity, ground func(x, 
 	})
 	origin := mapdata.Point{0, 0} // scene x is east and z is south: the frame needs no shift
 	result := build.Build(build.Input{Map: &mapdata.Map{Features: featuresOf(entities), Origin: &origin}, Rules: builder.rules,
-		Heights: heights, Detail: detail, Context: featuresOf(context)})
-	meshes := make([]*scene.Mesh, 0, len(result.Pieces))
+		Heights: heights, Detail: detail, Context: featuresOf(context), Models: builder.library})
+	nodes := make([]*scene.Node, 0, len(result.Pieces)+len(result.Instances))
 	for _, piece := range result.Pieces {
-		meshes = append(meshes, builder.meshOf(piece))
+		nodes = append(nodes, &scene.Node{Name: piece.Name, Transform: graphics.Identity(), Mesh: builder.meshOf(piece)})
 	}
-	return meshes
+	for _, copies := range result.Instances {
+		instances := instancesOf(copies)
+		for _, piece := range copies.Model {
+			nodes = append(nodes, &scene.Node{Name: copies.Name, Transform: graphics.Identity(), Mesh: builder.meshOf(piece), Instances: instances})
+		}
+	}
+	return nodes
+}
+
+// instancesOf turns the builder's copies into the renderer's instances.
+func instancesOf(copies *mesh.Instances) *scene.Instances {
+	instances := &scene.Instances{}
+	for index := range copies.Count() {
+		half := float64(copies.Turns[index]) / 2
+		position := graphics.Vec4{copies.Positions[3*index], copies.Positions[3*index+1], copies.Positions[3*index+2], 1}
+		rotation := graphics.Vec4{0, float32(math.Sin(half)), 0, float32(math.Cos(half))}
+		scale := copies.Scales[index]
+		instances.Transforms = append(instances.Transforms, graphics.FromTranslationRotationScale(position, rotation, graphics.Vec4{scale, scale, scale, 1}))
+		tint := copies.Tints[4*index : 4*index+4]
+		instances.Colors = append(instances.Colors, graphics.Vec4{tint[0], tint[1], tint[2], tint[3]})
+	}
+	return instances
 }
 
 // featuresOf turns entities with ground shapes into map features (km east and north).

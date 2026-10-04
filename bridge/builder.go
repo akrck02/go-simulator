@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"github.com/akrck02/go-renderer/graphics"
 	"github.com/akrck02/go-renderer/scene"
 	"github.com/akrck02/go-simulator/world"
 )
@@ -12,10 +11,11 @@ import (
 type BatchBuilder interface {
 	// Handles tells whether the builder draws the entities of this kind and properties.
 	Handles(kind string, properties map[string]any) bool
-	// Build returns the meshes of a batch's entities. context are the entities of the other batches
-	// the builder handles (a house looks onto a street of another batch); ground is the height of
-	// the scene's walkable ground at a point, in world units, and whether there is ground there.
-	Build(entities, context []*world.Entity, ground func(x, z float32) (float32, bool)) []*scene.Mesh
+	// Build returns the nodes (meshes, or instanced models) of a batch's entities. context are the
+	// entities of the other batches the builder handles (a house looks onto a street of another
+	// batch); ground is the height of the scene's walkable ground at a point, in world units, and
+	// whether there is ground there.
+	Build(entities, context []*world.Entity, ground func(x, z float32) (float32, bool)) []*scene.Node
 }
 
 // UseBuilder hands the batches a builder handles over to it.
@@ -71,8 +71,13 @@ func (bridge *Bridge) buildWithBuilder(group *batch) {
 	bridge.scene.GroundHeight(0, 0) // builds the ground index now: the builder asks from several goroutines
 	group.node.Mesh = nil
 	group.node.Children = group.node.Children[:0]
-	for _, mesh := range bridge.builder.Build(entities, context, bridge.scene.GroundHeight) {
-		mesh.Dirty = true
-		group.node.Children = append(group.node.Children, &scene.Node{Name: mesh.Name, Transform: graphics.Identity(), Mesh: mesh})
+	for _, node := range bridge.builder.Build(entities, context, bridge.scene.GroundHeight) {
+		if node.Mesh != nil {
+			node.Mesh.Dirty = true
+		}
+		if node.Instances != nil {
+			node.Instances.Dirty = true
+		}
+		group.node.Children = append(group.node.Children, node)
 	}
 }
