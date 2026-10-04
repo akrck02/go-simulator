@@ -33,13 +33,15 @@ func TestEntitiesBecomeMeshes(t *testing.T) {
 		Shape: &world.Shape{Outline: [][2]float32{{0, 0}, {0.006, 0}, {0.006, 0.01}, {0, 0.01}}}}
 	ground := func(x, z float32) (float32, bool) { return 0.1, true } // 100 m everywhere
 	meshes := builder.Build([]*world.Entity{house}, nil, ground)
-	if len(meshes) != 1 || len(meshes[0].Indices) == 0 {
-		t.Fatalf("one mesh expected, got %d", len(meshes))
+	if len(meshes) != 2 {
+		t.Fatalf("walls and roof expected, got %d meshes", len(meshes))
 	}
 	highest, southmost := float32(0), float32(-1)
-	for index := 0; index+2 < len(meshes[0].Positions); index += 3 {
-		highest = max(highest, meshes[0].Positions[index+1])
-		southmost = max(southmost, meshes[0].Positions[index+2])
+	for _, built := range meshes {
+		for index := 0; index+2 < len(built.Positions); index += 3 {
+			highest = max(highest, built.Positions[index+1])
+			southmost = max(southmost, built.Positions[index+2])
+		}
 	}
 	// 100 m ground + 6 m of walls + 3 m of roof (a 6 m wide house at 45°)
 	if math.Abs(float64(highest)-0.109) > 1e-4 {

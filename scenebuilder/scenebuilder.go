@@ -77,10 +77,11 @@ func featuresOf(entities []*world.Entity) []*mapdata.Feature {
 
 // propertiesOf are the entity's properties, plus the shape's width (km) when they lack one.
 func propertiesOf(entity *world.Entity) map[string]any {
-	properties := make(map[string]any, len(entity.Properties)+1)
+	properties := make(map[string]any, len(entity.Properties)+2)
 	for key, value := range entity.Properties {
 		properties[key] = value
 	}
+	properties["id"] = string(entity.Identifier) // stable choices (palettes, plants) follow the entity
 	if _, present := properties["width"]; !present && entity.Shape.Width > 0 {
 		properties["width"] = float64(entity.Shape.Width)
 	}
@@ -105,7 +106,11 @@ func (builder *Builder) material(material mesh.Material) *scene.Material {
 		return existing
 	}
 	made := &scene.Material{Name: material.Name, Kind: scene.KindLit, BaseColor: [4]float32{1, 1, 1, 1},
-		DoubleSided: material.DoubleSided, DepthBias: float32(material.DepthBias)}
+		DoubleSided: material.DoubleSided, DepthBias: float32(material.DepthBias),
+		Pattern: scene.PatternNamed(material.Pattern), PatternScale: float32(material.PatternScale / 1000)}
+	if material.Kind == "glow" {
+		made.Kind = scene.KindGlow
+	}
 	builder.materials[material.Name] = made
 	return made
 }
