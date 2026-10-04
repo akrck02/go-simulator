@@ -49,3 +49,25 @@ func TestEntitiesBecomeFeatures(t *testing.T) {
 		t.Fatalf("properties lost: %v", read.Features[0].Properties)
 	}
 }
+
+func TestFieldsAreWrittenAsGrids(t *testing.T) {
+	current := world.New()
+	extent := &world.Extent{MinimumX: -1, MaximumX: 1, MinimumZ: -2, MaximumZ: 0}
+	if err := current.ApplyChange(world.SetFieldValues(&world.FieldPatch{Name: "biome", Columns: 2, Rows: 1, Extent: extent, Values: []float32{3, -1}})); err != nil {
+		t.Fatal(err)
+	}
+	folder := t.TempDir()
+	if err := WriteFields(folder, "city 3 ", current, nil); err != nil {
+		t.Fatal(err)
+	}
+	values, err := os.ReadFile(filepath.Join(folder, "city 3 biome.f32"))
+	if err != nil || len(values) != 8 {
+		t.Fatalf("two float32 values expected: %v, %v", len(values), err)
+	}
+	header, _ := os.ReadFile(filepath.Join(folder, "city 3 biome.json"))
+	var read map[string]any
+	json.Unmarshal(header, &read)
+	if read["cell"] != 1.0 || read["north"] != 2.0 || read["west"] != -1.0 {
+		t.Errorf("header %v", read)
+	}
+}
