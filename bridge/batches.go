@@ -57,12 +57,19 @@ func (bridge *Bridge) batchNamed(name string, first *world.Shape) *batch {
 	return group
 }
 
-// rebuildChangedBatches builds again the meshes of the batches that changed.
+// rebuildChangedBatches builds again the meshes of the batches that changed: with the builder
+// the batches it handles, the others with the bridge's own ground shapes.
 func (bridge *Bridge) rebuildChangedBatches() {
 	for _, group := range bridge.batches {
-		if group.changed {
-			group.rebuild(bridge.groundHeight)
+		if !group.changed {
+			continue
 		}
+		if bridge.handledBy(group) {
+			bridge.buildWithBuilder(group)
+			group.changed = false
+			continue
+		}
+		group.rebuild(bridge.groundHeight)
 	}
 }
 

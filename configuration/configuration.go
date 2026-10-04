@@ -31,9 +31,12 @@ import (
 
 // Configuration is a whole rules file.
 type Configuration struct {
-	Plugins   []Plugin `yaml:"plugins"`
-	Stages    []Stage  `yaml:"stages"`
-	Directory string   `yaml:"-"` // folder of the file; relative paths start there
+	Plugins []Plugin `yaml:"plugins"`
+	Stages  []Stage  `yaml:"stages"`
+	// SceneStyle is a style rules file of go-scene-builder: the viewer draws the batches its rules
+	// match with the scene builder (roofs, gates…) instead of plain ground shapes.
+	SceneStyle string `yaml:"scene_style"`
+	Directory  string `yaml:"-"` // folder of the file; relative paths start there
 }
 
 // Plugin is a plugin program the simulation uses.

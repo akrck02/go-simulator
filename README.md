@@ -25,7 +25,8 @@ During development the renderer is used from the folder next to this one (`repla
 go run ./cmd/simulator -rules ../go-simulator-motion/examples/living-scene.yaml scene.glb
 ```
 
-It accepts all the viewer flags (`-walk`, `-night`, `-capture`, `-benchmark`…). Keys, besides the
+It accepts all the viewer flags (`-walk`, `-night`, `-capture`, `-benchmark`…), and `-advance N`
+steps every stepped stage N times before showing (to start, or capture a frame, further on). Keys, besides the
 viewer's: `P` pauses, `,` `.` halve or double the speed of time, and every `toggle_key` in the
 rules file turns its rule on and off. Without `-rules` it only shows the scene.
 
@@ -156,3 +157,17 @@ Any answer can instead be `error` `{message}`; the host stops the simulation wit
   simulation that adds and removes thousands of different meshes will need one.
 - Plugins still resolve go-renderer through this module's requirements, so a plugin's `go.mod`
   needs the same `replace` for it during development.
+
+## Scene styles
+
+A rules file can name a style file of [go-scene-builder](../go-scene-builder): the viewer then
+draws the batches of ground shapes its rules match with the scene builder (walls, roofs, gates,
+level bridges…) instead of plain extruded outlines; the other batches are drawn as before.
+
+```yaml
+scene_style: style.yaml      # relative to the rules file
+plugins: …
+```
+
+The bridge only knows the `BatchBuilder` interface; the `scenebuilder` package implements it with
+go-scene-builder, which needs GEOS (`pkg-config geos`) to build the simulator.

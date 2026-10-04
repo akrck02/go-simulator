@@ -11,10 +11,17 @@ import (
 
 // Apply shows a change set in the scene. Call it on the thread that draws, between frames.
 func (bridge *Bridge) Apply(set world.ChangeSet) error {
+	return bridge.ApplyAll([]world.ChangeSet{set})
+}
+
+// ApplyAll shows several change sets, rebuilding the batches that changed only once at the end.
+func (bridge *Bridge) ApplyAll(sets []world.ChangeSet) error {
 	defer bridge.rebuildChangedBatches()
-	for index, change := range set.Changes {
-		if err := bridge.applyChange(change); err != nil {
-			return fmt.Errorf("showing change %d (%s) from %q: %w", index, change.Operation, set.Origin, err)
+	for _, set := range sets {
+		for index, change := range set.Changes {
+			if err := bridge.applyChange(change); err != nil {
+				return fmt.Errorf("showing change %d (%s) from %q: %w", index, change.Operation, set.Origin, err)
+			}
 		}
 	}
 	return nil
@@ -43,6 +50,7 @@ func (bridge *Bridge) applyChange(change world.Change) error {
 
 func (bridge *Bridge) add(entity *world.Entity) error {
 	node := &scene.Node{Name: string(entity.Identifier), Transform: graphics.Identity(), Tags: copyTags(entity.Properties)}
+	bridge.kinds[entity.Identifier] = entity.Kind
 	if entity.Transform != nil {
 		node.Transform = graphics.Mat4(*entity.Transform)
 	}
