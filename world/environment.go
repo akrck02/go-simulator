@@ -11,6 +11,14 @@ type Environment struct {
 	Wind          *Wind           `json:"wind,omitempty"`
 	CloudOffset   *spatial.Vector `json:"cloud_offset,omitempty"` // how far the clouds have drifted (x, z)
 	TideAngle     *float32        `json:"tide_angle,omitempty"`   // radians; the tide heights come with the scene
+	Snow          *Snow           `json:"snow,omitempty"`         // snow on the ground above a height
+	FoliageTint   *[4]float32     `json:"foliage_tint,omitempty"` // colour and amount foliage takes (the season)
+}
+
+// Snow covers the ground facing up above a height (world units), fading in over Blend.
+type Snow struct {
+	Level float32 `json:"level"`
+	Blend float32 `json:"blend"`
 }
 
 // Wind blows towards a horizontal direction with a strength from 0 (calm) to 1 (strong).
@@ -22,7 +30,7 @@ type Wind struct {
 // IsEmpty tells whether the patch sets nothing.
 func (environment *Environment) IsEmpty() bool {
 	return environment.SunDirection == nil && environment.CelestialPole == nil && environment.Wind == nil &&
-		environment.CloudOffset == nil && environment.TideAngle == nil
+		environment.CloudOffset == nil && environment.TideAngle == nil && environment.Snow == nil && environment.FoliageTint == nil
 }
 
 // Copy returns a deep copy.
@@ -33,6 +41,8 @@ func (environment Environment) Copy() Environment {
 		Wind:          copyPointer(environment.Wind),
 		CloudOffset:   copyPointer(environment.CloudOffset),
 		TideAngle:     copyPointer(environment.TideAngle),
+		Snow:          copyPointer(environment.Snow),
+		FoliageTint:   copyPointer(environment.FoliageTint),
 	}
 }
 
@@ -52,6 +62,12 @@ func (environment *Environment) merge(patch *Environment) {
 	}
 	if patch.TideAngle != nil {
 		environment.TideAngle = copyPointer(patch.TideAngle)
+	}
+	if patch.Snow != nil {
+		environment.Snow = copyPointer(patch.Snow)
+	}
+	if patch.FoliageTint != nil {
+		environment.FoliageTint = copyPointer(patch.FoliageTint)
 	}
 }
 
