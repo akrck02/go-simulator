@@ -160,6 +160,10 @@ func (recorder *recorder) snapshotIfDue(engine *host.Engine, stage *host.Stage, 
 			if err := snapshot.WriteEntities(path, engine.World, extra); err != nil {
 				return err
 			}
+			prefix := fmt.Sprintf("%s %g ", stage.Name, moment)
+			if err := snapshot.WriteFields(recorder.folder, prefix, engine.World, extra); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
