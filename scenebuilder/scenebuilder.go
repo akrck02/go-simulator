@@ -128,8 +128,22 @@ func pointsOf(scenePoints [][2]float32) []mapdata.Point {
 }
 
 func (builder *Builder) meshOf(piece *mesh.Piece) *scene.Mesh {
-	return &scene.Mesh{Name: piece.Name, Positions: piece.Positions, Normals: piece.Normals, Colors: piece.Colors,
+	made := &scene.Mesh{Name: piece.Name, Positions: piece.Positions, Normals: piece.Normals, Colors: piece.Colors,
 		Indices: piece.Indices, Material: builder.material(piece.Material), Ground: piece.Ground}
+	for _, detail := range piece.Details {
+		version := &scene.Mesh{Name: piece.Name + " (hidden)", Material: made.Material}
+		if detail.Piece != nil {
+			version = builder.meshOf(detail.Piece)
+		} else if len(piece.Positions) >= 3 {
+			corner := piece.Positions[:3]
+			version.Positions = append(append(append([]float32{}, corner...), corner...), corner...)
+			version.Normals = []float32{0, 1, 0, 0, 1, 0, 0, 1, 0}
+			version.Colors = make([]float32, 12)
+			version.Indices = []uint32{0, 1, 2}
+		}
+		made.Details = append(made.Details, scene.DetailLevel{Mesh: version, ScreenSize: float32(detail.ScreenSize)})
+	}
+	return made
 }
 
 func (builder *Builder) material(material mesh.Material) *scene.Material {
@@ -138,7 +152,7 @@ func (builder *Builder) material(material mesh.Material) *scene.Material {
 	}
 	made := &scene.Material{Name: material.Name, Kind: scene.KindLit, BaseColor: [4]float32{1, 1, 1, 1},
 		DoubleSided: material.DoubleSided, DepthBias: float32(material.DepthBias),
-		Pattern: scene.PatternNamed(material.Pattern), PatternScale: float32(material.PatternScale / 1000)}
+		Pattern: scene.PatternNamed(material.Pattern), PatternScale: float32(material.PatternScale / 1000), Foliage: material.Foliage}
 	if material.Kind == "glow" {
 		made.Kind = scene.KindGlow
 	}

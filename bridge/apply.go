@@ -197,6 +197,16 @@ func (bridge *Bridge) setEnvironment(patch *world.Environment) {
 	if patch.TideAngle != nil && environment.Water != nil && environment.Water.Variation != nil {
 		environment.Water.Variation.Angle = *patch.TideAngle
 	}
+	if patch.Snow != nil {
+		color := graphics.Vec4{0.92, 0.94, 0.97, 1}
+		if environment.Snow != nil {
+			color = environment.Snow.Color
+		}
+		environment.Snow = &scene.Snow{Level: patch.Snow.Level, Blend: patch.Snow.Blend, Color: color}
+	}
+	if patch.FoliageTint != nil {
+		environment.FoliageTint = graphics.Vec4(*patch.FoliageTint)
+	}
 }
 
 func mergeTags(tags, patch map[string]any) map[string]any {
