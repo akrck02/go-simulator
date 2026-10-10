@@ -13,12 +13,14 @@ type Field struct {
 	Values  []float32 `json:"-"` // travels as a binary attachment, not as JSON
 }
 
-// Extent is the area a field covers, in world units on the ground plane (x, z).
+// Extent is the area a field covers, in world units on the ground plane (x, z). Its edges are
+// float64 so a plugin that reads a field gets back exactly the cells another one wrote: a cell of
+// 0.0125 km stays 0.0125, which simulations sensitive to their inputs need.
 type Extent struct {
-	MinimumX float32 `json:"minimum_x"`
-	MaximumX float32 `json:"maximum_x"`
-	MinimumZ float32 `json:"minimum_z"`
-	MaximumZ float32 `json:"maximum_z"`
+	MinimumX float64 `json:"minimum_x"`
+	MaximumX float64 `json:"maximum_x"`
+	MinimumZ float64 `json:"minimum_z"`
+	MaximumZ float64 `json:"maximum_z"`
 }
 
 // Region is a rectangle of cells inside a field.

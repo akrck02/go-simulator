@@ -18,7 +18,7 @@ import (
 func WriteFields(folder, prefix string, current *world.World, extra map[string]any) error {
 	for _, field := range current.Fields() {
 		header := map[string]any{"name": field.Name, "columns": field.Columns, "rows": field.Rows, "extent": field.Extent,
-			"cell": float64(field.Extent.MaximumX-field.Extent.MinimumX) / float64(field.Columns),
+			"cell": (field.Extent.MaximumX - field.Extent.MinimumX) / float64(field.Columns),
 			"west": field.Extent.MinimumX, "north": -field.Extent.MinimumZ, "units": "km", "axes": "east-south"}
 		for key, value := range extra {
 			header[key] = value
