@@ -130,7 +130,8 @@ A fact that does not exist never holds. For entities, the facts are `kind` and t
 
 Plugins read each other's results through the world, never through each other's files, so the
 names they share are written down in `world/vocabulary.go`: fields (`elevation`, `water_depth`,
-`slope`, `temperature`, `precipitation`, `biome`), kinds (`street`, `parcel`, `building`, `wall`,
+`slope`, `temperature`, `precipitation`, `biome`, `vegetation`, `tree_cover`, `shrub_cover`,
+`herb_cover`), events that name the values of a categorical field (`biomes`, `vegetation`), kinds (`street`, `parcel`, `building`, `wall`,
 `gate`, `square`, `bridge`, `river`, `tree`, `anchor`) and properties (`year`, `use`, `floors`,
 `class`, `sector`, `species`, `anchor`, `role`). Positions and the sizes of shapes are in world
 units, the unit of the scene, on the ground plane (x, z) with y up: they are what gets drawn.

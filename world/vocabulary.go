@@ -17,7 +17,17 @@ const (
 	FieldSlope         = "slope"         // rise over run of the ground, no unit
 	FieldTemperature   = "temperature"   // mean yearly temperature, °C
 	FieldPrecipitation = "precipitation" // yearly rain and snow, mm
-	FieldBiome         = "biome"         // index into the biome names a plugin publishes in an event
+	FieldBiome         = "biome"         // index into the names of the EventBiomes event, −1 for the sea
+	FieldVegetation    = "vegetation"    // index into the names of the EventVegetation event, −1 for bare ground
+	FieldTreeCover     = "tree_cover"    // share of the ground under trees, 0 to 1
+	FieldShrubCover    = "shrub_cover"   // share of the ground under shrubs, 0 to 1
+	FieldHerbCover     = "herb_cover"    // share of the ground under grasses and flowers, 0 to 1
+)
+
+// Events: what plugins announce. Events that name the categories of a field carry {"names": […]}.
+const (
+	EventBiomes     = "biomes"     // names of the values of FieldBiome
+	EventVegetation = "vegetation" // names of the values of FieldVegetation, with each species' "labels" and "forms"
 )
 
 // Kinds: what an entity is.
@@ -43,5 +53,5 @@ const (
 	PropertySector  = "sector"  // the part of a place it belongs to
 	PropertySpecies = "species" // what kind of plant or animal
 	PropertyAnchor  = "anchor"  // true on entities a rules file fixed: plugins build around them, never over them
-	PropertyRole    = "role"    // what an anchor means to the plugins: "obstacle", "road", "gate"…
+	PropertyRole    = "role"    // what an anchor means to the plugins: "obstacle", "road", "gate", "plant", "region"…
 )
