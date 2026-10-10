@@ -44,7 +44,8 @@ type session struct {
 	connection *protocol.Connection
 	world      *world.World
 	instances  map[string]Rule
-	order      []string // instances in the order they were attached
+	order      []string      // instances in the order they were attached
+	events     []world.Event // events other plugins emitted, received with the current request
 }
 
 func (session *session) answer(message protocol.Message) error {
@@ -89,6 +90,7 @@ func (session *session) start(message protocol.Message) error {
 	if err := session.world.Apply(request.Snapshot); err != nil {
 		return fmt.Errorf("start snapshot: %w", err)
 	}
+	session.events = eventsOf(request.Snapshot.Changes)
 	reply := world.ChangeSet{Origin: session.plugin.Name, Time: session.world.Time}
 	for _, instance := range session.order {
 		starter, startsSomething := session.instances[instance].(Starter)
@@ -131,6 +133,7 @@ func (session *session) step(message protocol.Message) error {
 	if err := session.world.Apply(world.ChangeSet{Changes: request.Incoming}); err != nil {
 		return fmt.Errorf("incoming changes: %w", err)
 	}
+	session.events = eventsOf(request.Incoming)
 	session.world.Time = request.Time
 	reply := world.ChangeSet{Origin: session.plugin.Name, Stage: request.Stage, Time: request.Time}
 	for _, instance := range request.Instances {
@@ -151,7 +154,18 @@ func (session *session) step(message protocol.Message) error {
 }
 
 func (session *session) context(stage, instance string, time, step float64) *Context {
-	return &Context{World: session.world, Stage: stage, Time: time, Step: step, Instance: instance}
+	return &Context{World: session.world, Stage: stage, Time: time, Step: step, Instance: instance, Events: session.events}
+}
+
+// eventsOf returns the events among some changes, in order.
+func eventsOf(changes []world.Change) []world.Event {
+	var events []world.Event
+	for _, change := range changes {
+		if change.Operation == world.Emit && change.Event != nil {
+			events = append(events, *change.Event)
+		}
+	}
+	return events
 }
 
 func runStart(starter Starter, context *Context) error {

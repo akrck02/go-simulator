@@ -68,7 +68,9 @@ func (engine *Engine) Start() ([]world.ChangeSet, error) {
 	}
 	var sets []world.ChangeSet
 	for _, plugin := range engine.Plugins {
-		set, err := plugin.Start(engine.World.Snapshot(plugin.interest))
+		snapshot := engine.World.Snapshot(plugin.interest)
+		snapshot.Changes = append(snapshot.Changes, engine.lastEventsFor(plugin.interest)...)
+		set, err := plugin.Start(snapshot)
 		if err != nil {
 			return sets, err
 		}

@@ -74,8 +74,13 @@ type Context struct {
 	Time     float64 // simulated time after the step
 	Step     float64 // time the step covers
 	Instance string  // name of the rule instance being run
-	changes  []world.Change
-	failure  error
+	// Events are the events other plugins emitted that the plugin's rules read (their interest's
+	// Events), received with this request. At the start they are the last event of each of those
+	// names emitted before, so a plugin that starts later still learns, for example, the names
+	// of the biomes.
+	Events  []world.Event
+	changes []world.Change
+	failure error
 }
 
 // Add adds an entity.

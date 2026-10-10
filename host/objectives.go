@@ -3,6 +3,7 @@ package host
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/akrck02/go-simulator/conditions"
@@ -116,6 +117,24 @@ func expectation(objective configuration.Objective) string {
 func (engine *Engine) LastEvent(name string) (world.Event, bool) {
 	event, found := engine.lastEvents[name]
 	return event, found
+}
+
+// lastEventsFor returns, as changes, the last event of every name an interest reads, sorted by name.
+func (engine *Engine) lastEventsFor(interest world.Interest) []world.Change {
+	names := make([]string, 0, len(engine.lastEvents))
+	for name := range engine.lastEvents {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	var changes []world.Change
+	for _, name := range names {
+		event := engine.lastEvents[name]
+		change := world.EmitEvent(event.Name, event.Data)
+		if interest.Covers(change, engine.World) {
+			changes = append(changes, change)
+		}
+	}
+	return changes
 }
 
 func (engine *Engine) rememberEvent(change world.Change) {
