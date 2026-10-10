@@ -14,7 +14,7 @@ go-renderer      draws a scene; knows nothing about simulations
    ▲
 go-simulator     world model · change protocol · host engine · rules files · renderer bridge
    ▲   (plugins use the plugin, world and spatial packages; never the renderer)
-plugins          go-simulator-motion · go-simulator-urban · landscape · …
+plugins          go-simulator-terrain · go-simulator-climate · go-simulator-motion · go-simulator-urban · …
 ```
 
 During development the renderer is used from the folder next to this one (`replace` in `go.mod`).
@@ -132,9 +132,13 @@ Plugins read each other's results through the world, never through each other's 
 names they share are written down in `world/vocabulary.go`: fields (`elevation`, `water_depth`,
 `slope`, `temperature`, `precipitation`, `biome`), kinds (`street`, `parcel`, `building`, `wall`,
 `gate`, `square`, `bridge`, `river`, `tree`, `anchor`) and properties (`year`, `use`, `floors`,
-`class`, `sector`, `species`, `anchor`, `role`). Lengths, positions and heights are in world units,
-the unit of the scene, on the ground plane (x, z) with y up; every other quantity has its unit
-written next to its name. A name another plugin may want to read belongs in the vocabulary.
+`class`, `sector`, `species`, `anchor`, `role`). Positions and the sizes of shapes are in world
+units, the unit of the scene, on the ground plane (x, z) with y up: they are what gets drawn.
+Fields and properties are data in physical units written next to their names (the elevation in
+metres, the temperature in °C), so models read them without knowing the scene's scale. A name
+another plugin may want to read belongs in the vocabulary. The ground itself comes from the
+terrain plugin ([go-simulator-terrain](../go-simulator-terrain)), which publishes `elevation` and
+`slope` from a relief.
 
 ## Shapes
 
