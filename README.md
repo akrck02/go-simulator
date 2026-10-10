@@ -196,7 +196,10 @@ func main() {
 }
 ```
 
-A rule can also implement `Start(context)` to do something once at the beginning. Changes a rule
+A rule can also implement `Start(context)` to do something once at the beginning. `context.Events`
+holds the events of other plugins the rule reads (its interest's `Events`) received with the current
+request; at the start, it holds the last event of each of those names, so a plugin that starts later
+still learns, for example, the names of the biomes the climate announced. Changes a rule
 makes are applied at once to the plugin's copy of the world, so it and the next rules see them.
 A plugin whose rules share state can set `AfterStep`, run once after the rules of each request, to
 describe the result once (go-simulator-urban publishes its cities there).
