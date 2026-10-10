@@ -32,7 +32,7 @@ rules file turns its rule on and off. Without `-rules` it only shows the scene.
 
 To run the stepped stages without a window, to the end of their clocks, and save the world at the
 times each stage lists in `snapshots` (GeoJSON, in ground coordinates [x, z]) with every emitted
-event in `events.jsonl`:
+event in `events.jsonl` and the stages' objectives checked in `objectives.json`:
 
 ```bash
 go run ./cmd/simulate -rules rules.yaml [-scene scene.glb] -output results/
@@ -61,12 +61,80 @@ stages:
         name: late_motion             # instance name (default: stage/rule)
 ```
 
+A rule's parameters can come from files: `with: {include: scenario.yaml}` (or a list of files)
+reads their YAML maps in order and the rule's own parameters win over them. A scenario can then
+live in its own file, with comments and notes for people (`story`, `interpretation`…), which
+plugins ignore because they only read the parameters they know. An included file cannot include
+others, and paths inside it still start at the rules file's folder.
+
 Rules run in the file's order; consecutive rules of one plugin go in a single request.
 Real-time stages advance with the viewer (`Engine.Advance`); stepped stages advance one step at a
 time (`Engine.StepStage`) until their `to`, or, with a `pace`, one step every `pace` real seconds
 while shown. Plugin programs get the rules file's folder in `GO_SIMULATOR_RULES_DIRECTORY`, and
 `plugin.Path` resolves the paths of their parameters against it; `~/` works in commands,
 directories and paths.
+
+## Anchors and objectives
+
+A simulator is generic: it knows nothing about the world it runs on. What makes its result the
+one a story needs comes from the rules file, in two ways.
+
+**Anchors** are places the story fixes. The host adds them to the world before the simulation
+starts, as hidden entities with `"anchor": true`, their `role` and their `source`, so every plugin
+sees them and builds around them, never over them:
+
+```yaml
+anchors:
+  - {id: main_gate, role: gate, at: [-2.5, 1.2], source: "chapter 3 of the story"}
+  - {id: spring, role: obstacle, outline: [[x, z], …]}
+  - {id: old_road, role: road, line: [[x, z], …], width: 0.01}
+  - {from: anchors.geojson, role: obstacle}   # one per feature; its id, kind and role win
+```
+
+**Objectives** are what a run must reach. Each stage lists them; `simulate` checks each one when
+its stage reaches its time, prints it, saves every result in `objectives.json` and fails if any
+was missed (`-objectives warn` only reports them). An objective counts the entities a condition
+matches or reads a value from the last event of a name:
+
+```yaml
+    objectives:
+      - name: walled by year 60
+        at: 60
+        count: {kind: wall}                  # at least one, unless min, max or near say otherwise
+      - name: about 6,000 people in year 100
+        at: 100
+        event: indicators
+        value: inhabitants
+        near: 6000
+        tolerance: 0.05                      # ±5 %
+        source: "the author's notes"
+```
+
+With a fixed seed, a run that reaches its objectives gives the same concrete result every time.
+
+## Conditions
+
+Objectives, biome rules and scene styles say when something applies with the same small
+language (package `conditions`): a map from a fact to what it must be, every entry holding.
+
+| Written | Holds when the fact is |
+|---|---|
+| `kind: building` | equal to the value (numbers by value, the rest by text) |
+| `use: [shop, workshop]` | one of the values |
+| `floors: {min: 2, max: 3}` | a number in the range (either end may be left out) |
+| `river: true` | that yes/no value |
+
+A fact that does not exist never holds. For entities, the facts are `kind` and their properties.
+
+## Vocabulary
+
+Plugins read each other's results through the world, never through each other's files, so the
+names they share are written down in `world/vocabulary.go`: fields (`elevation`, `water_depth`,
+`slope`, `temperature`, `precipitation`, `biome`), kinds (`street`, `parcel`, `building`, `wall`,
+`gate`, `square`, `bridge`, `river`, `tree`, `anchor`) and properties (`year`, `use`, `floors`,
+`class`, `sector`, `species`, `anchor`, `role`). Lengths, positions and heights are in world units,
+the unit of the scene, on the ground plane (x, z) with y up; every other quantity has its unit
+written next to its name. A name another plugin may want to read belongs in the vocabulary.
 
 ## Shapes
 
@@ -90,14 +158,15 @@ towards the camera so the terrain does not hide them from far away.
 
 | Package | What it is |
 |---|---|
-| `world` | The neutral state: entities (id, kind, parent, transform, shape, properties), fields (named grids), the environment (sun, wind, clouds, tide), changes and change sets, and interests (what a rule reads) |
+| `world` | The neutral state: entities (id, kind, parent, transform, shape, properties), fields (named grids), the environment (sun, wind, clouds, tide), changes and change sets, interests (what a rule reads) and the shared vocabulary |
+| `conditions` | The condition language of objectives, biome rules and styles |
 | `protocol` | Messages between host and plugins and their framing over standard input and output |
 | `plugin` | The toolkit for writing a plugin in Go: `Plugin`, `Definition`, `Rule`, `Context`, `Parameters`, `Serve` |
 | `spatial` | Renderer-free vectors and matrices for plugins (same layout as go-renderer) |
-| `host` | Starts plugins (`Launch` for programs, `Connect` for built-ins), attaches rules and runs the stages (`Engine`) |
-| `configuration` | Reads and checks rules files |
+| `host` | Starts plugins (`Launch` for programs, `Connect` for built-ins), adds the anchors, attaches rules, runs the stages (`Engine`) and checks objectives |
+| `configuration` | Reads and checks rules files: includes, anchors and objectives |
 | `bridge` | Builds the initial world from a go-renderer scene and shows every change set in it (ground shapes, batches) |
-| `snapshot` | Writes a world's entities as GeoJSON |
+| `snapshot` | Writes a world's entities as GeoJSON and fields as grids; reads GeoJSON features |
 
 ## Writing a plugin in Go
 

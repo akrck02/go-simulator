@@ -36,7 +36,9 @@ type Configuration struct {
 	// SceneStyle is a style rules file of go-scene-builder: the viewer draws the batches its rules
 	// match with the scene builder (roofs, gates…) instead of plain ground shapes.
 	SceneStyle string `yaml:"scene_style"`
-	Directory  string `yaml:"-"` // folder of the file; relative paths start there
+	// Anchors are places the story fixes; the host adds them to the world before it starts.
+	Anchors   []Anchor `yaml:"anchors"`
+	Directory string   `yaml:"-"` // folder of the file; relative paths start there
 }
 
 // Plugin is a plugin program the simulation uses.
@@ -53,6 +55,8 @@ type Stage struct {
 	Clock     Clock     `yaml:"clock"`
 	Rules     []Rule    `yaml:"rules"`
 	Snapshots []float64 `yaml:"snapshots"` // stage times at which a run without a window saves the world
+	// Objectives are what the run must reach; runs without a window check them.
+	Objectives []Objective `yaml:"objectives"`
 }
 
 // Clock is "realtime" or a stepped clock {unit, from, to, step}.
@@ -104,6 +108,9 @@ func Load(path string) (*Configuration, error) {
 		return nil, err
 	}
 	configuration.Directory = filepath.Dir(absolute)
+	if err := configuration.expandIncludes(); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
 	return configuration, nil
 }
 
@@ -128,6 +135,9 @@ func (configuration *Configuration) Check() error {
 	for _, stage := range configuration.Stages {
 		problems = append(problems, checkStage(stage, stages)...)
 		stages[stage.Name] = true
+	}
+	for index, anchor := range configuration.Anchors {
+		problems = append(problems, checkAnchor(anchor, index)...)
 	}
 	return errors.Join(problems...)
 }
@@ -161,6 +171,9 @@ func checkStage(stage Stage, seen map[string]bool) []error {
 		if rule.Every < 0 {
 			problems = append(problems, fmt.Errorf("stage %q, rule %q: \"every\" cannot be negative", stage.Name, rule.Rule))
 		}
+	}
+	for _, objective := range stage.Objectives {
+		problems = append(problems, checkObjective(stage.Name, objective)...)
 	}
 	return problems
 }

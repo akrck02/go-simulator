@@ -19,6 +19,9 @@ func Build(rules *configuration.Configuration, initial *world.World, builtins ma
 	if initial == nil {
 		initial = world.New()
 	}
+	if err := AddAnchors(rules, initial); err != nil {
+		return nil, err
+	}
 	engine := &Engine{World: initial}
 	if err := engine.launchPlugins(rules, builtins); err != nil {
 		_ = engine.Close()
@@ -56,7 +59,8 @@ func launchPlugin(rules *configuration.Configuration, settings configuration.Plu
 func (engine *Engine) attachStages(rules *configuration.Configuration) error {
 	names := map[string]bool{}
 	for _, settings := range rules.Stages {
-		stage := &Stage{Name: settings.Name, Clock: Clock(settings.Clock), Snapshots: settings.Snapshots}
+		stage := &Stage{Name: settings.Name, Clock: Clock(settings.Clock), Snapshots: settings.Snapshots,
+			Objectives: settings.Objectives}
 		for _, ruleSettings := range settings.Rules {
 			rule, err := engine.attachRule(stage, ruleSettings, names)
 			if err != nil {

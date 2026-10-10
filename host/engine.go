@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/akrck02/go-simulator/configuration"
 	"github.com/akrck02/go-simulator/world"
 )
 
@@ -15,6 +16,8 @@ type Engine struct {
 	Speed   float64 // multiplies the time of real-time stages (0 = 1)
 	Paused  bool    // real-time stages do not advance while paused
 	started bool
+	// lastEvents holds the last event of every name, for objectives that read them.
+	lastEvents map[string]world.Event
 }
 
 // Stage is a group of rules sharing a clock.
@@ -24,7 +27,9 @@ type Stage struct {
 	Rules     []*RuleInstance
 	Time      float64   // current time in the clock's unit
 	Snapshots []float64 // times at which a run without a window saves the world
-	waited    float64   // real seconds since the last paced step
+	// Objectives are what the run must reach (see CheckObjective).
+	Objectives []configuration.Objective
+	waited     float64 // real seconds since the last paced step
 }
 
 // Clock says how a stage's time advances. A real-time clock advances with the seconds that pass;
@@ -225,6 +230,7 @@ func (engine *Engine) apply(origin *Plugin, set *world.ChangeSet) error {
 	set.Origin = origin.Name
 	for index, change := range set.Changes {
 		engine.forward(origin, change)
+		engine.rememberEvent(change)
 		if err := engine.World.ApplyChange(change); err != nil {
 			return fmt.Errorf("change %d (%s) from plugin %q: %w", index, change.Operation, origin.Name, err)
 		}

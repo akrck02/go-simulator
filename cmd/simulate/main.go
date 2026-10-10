@@ -6,6 +6,9 @@
 //
 // It writes, in the output folder, one <stage> <time>.geojson per snapshot and events.jsonl with
 // every event the plugins emitted. Real-time stages do not run.
+//
+// Each stage's objectives are checked when the stage reaches their time and saved in
+// objectives.json. A run that misses one fails, unless -objectives warn only reports it.
 package main
 
 import (
@@ -29,18 +32,23 @@ func main() {
 	rulesPath := flag.String("rules", "", "rules file")
 	scenePath := flag.String("scene", "", "glTF scene the world starts from (optional)")
 	output := flag.String("output", "", "folder for the snapshots and the events")
+	objectives := flag.String("objectives", "fail", "what a missed objective does: fail or warn")
 	flag.Parse()
 	if *rulesPath == "" || *output == "" {
 		fmt.Fprintln(os.Stderr, "usage: simulate -rules rules.yaml [-scene scene.glb] -output folder")
 		os.Exit(2)
 	}
-	if err := run(*rulesPath, *scenePath, *output); err != nil {
+	if *objectives != "fail" && *objectives != "warn" {
+		fmt.Fprintln(os.Stderr, "-objectives is fail or warn")
+		os.Exit(2)
+	}
+	if err := run(*rulesPath, *scenePath, *output, *objectives == "fail"); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(rulesPath, scenePath, output string) error {
+func run(rulesPath, scenePath, output string, failOnMissedObjectives bool) error {
 	rules, err := configuration.Load(rulesPath)
 	if err != nil {
 		return err
@@ -62,7 +70,10 @@ func run(rulesPath, scenePath, output string) error {
 		return err
 	}
 	defer recorder.close()
-	return runStages(engine, recorder)
+	if err := runStages(engine, recorder); err != nil {
+		return err
+	}
+	return recorder.finishObjectives(engine, failOnMissedObjectives)
 }
 
 func initialWorld(scenePath string) (*world.World, error) {
@@ -89,6 +100,7 @@ func runStages(engine *host.Engine, recorder *recorder) error {
 		if err := recorder.snapshotIfDue(engine, stage, stage.Clock.From-1); err != nil {
 			return err
 		}
+		recorder.checkObjectives(engine, stage, stage.Clock.From-1)
 	}
 	for {
 		running := unfinished(steppedStages(engine))
@@ -111,6 +123,7 @@ func stepAndRecord(engine *host.Engine, stage *host.Stage, recorder *recorder) e
 		return fmt.Errorf("stage %q at %g: %w", stage.Name, stage.Time, err)
 	}
 	fmt.Fprintf(os.Stderr, "%s %g (%d changes, %v)\n", stage.Name, stage.Time, countChanges(sets), time.Since(began).Round(time.Millisecond))
+	recorder.checkObjectives(engine, stage, before)
 	return recorder.snapshotIfDue(engine, stage, before)
 }
 
@@ -138,9 +151,10 @@ func countChanges(sets []world.ChangeSet) int {
 
 // recorder writes snapshots and events into the output folder.
 type recorder struct {
-	folder string
-	log    *os.File
-	writer *json.Encoder
+	folder     string
+	log        *os.File
+	writer     *json.Encoder
+	objectives []host.ObjectiveResult
 }
 
 func newRecorder(folder string) (*recorder, error) {
@@ -182,3 +196,60 @@ func (recorder *recorder) events(sets []world.ChangeSet) {
 }
 
 func (recorder *recorder) close() { _ = recorder.log.Close() }
+
+// checkObjectives measures the objectives the stage reached since "before" and reports each one.
+func (recorder *recorder) checkObjectives(engine *host.Engine, stage *host.Stage, before float64) {
+	for _, objective := range stage.DueObjectives(before) {
+		result := engine.CheckObjective(stage, objective)
+		recorder.objectives = append(recorder.objectives, result)
+		fmt.Fprintln(os.Stderr, result.Describe())
+	}
+}
+
+// finishObjectives saves every result in objectives.json, reports the objectives no stage reached
+// and, when asked to, fails if any objective was missed.
+func (recorder *recorder) finishObjectives(engine *host.Engine, failOnMissed bool) error {
+	recorder.objectives = append(recorder.objectives, unreachedObjectives(engine)...)
+	if len(recorder.objectives) == 0 {
+		return nil
+	}
+	contents, err := json.MarshalIndent(recorder.objectives, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(recorder.folder, "objectives.json"), contents, 0o644); err != nil {
+		return err
+	}
+	missed := countMissed(recorder.objectives)
+	fmt.Fprintf(os.Stderr, "objectives: %d of %d reached\n", len(recorder.objectives)-missed, len(recorder.objectives))
+	if missed > 0 && failOnMissed {
+		return fmt.Errorf("%d objectives not reached (see objectives.json; -objectives warn only reports them)", missed)
+	}
+	return nil
+}
+
+// unreachedObjectives are the objectives whose time is outside their stage's clock.
+func unreachedObjectives(engine *host.Engine) []host.ObjectiveResult {
+	var results []host.ObjectiveResult
+	for _, stage := range steppedStages(engine) {
+		for _, objective := range stage.Objectives {
+			if objective.At > stage.Time || objective.At <= stage.Clock.From-1 {
+				result := host.ObjectiveResult{Stage: stage.Name, Time: objective.At, Name: objective.Name,
+					Expected: "a time inside the stage's clock", Source: objective.Source}
+				fmt.Fprintln(os.Stderr, result.Describe())
+				results = append(results, result)
+			}
+		}
+	}
+	return results
+}
+
+func countMissed(results []host.ObjectiveResult) int {
+	missed := 0
+	for _, result := range results {
+		if !result.Reached {
+			missed++
+		}
+	}
+	return missed
+}
