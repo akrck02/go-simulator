@@ -175,7 +175,7 @@ func (recorder *recorder) snapshotIfDue(engine *host.Engine, stage *host.Stage, 
 				return err
 			}
 			prefix := fmt.Sprintf("%s %g ", stage.Name, moment)
-			if err := snapshot.WriteFields(recorder.folder, prefix, engine.World, extra); err != nil {
+			if err := snapshot.WriteFields(recorder.folder, prefix, engine.World, extra, stage.SnapshotFields...); err != nil {
 				return err
 			}
 		}

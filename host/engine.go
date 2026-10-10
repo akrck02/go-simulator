@@ -27,6 +27,8 @@ type Stage struct {
 	Rules     []*RuleInstance
 	Time      float64   // current time in the clock's unit
 	Snapshots []float64 // times at which a run without a window saves the world
+	// SnapshotFields are the fields the snapshots save (none: every field).
+	SnapshotFields []string
 	// Objectives are what the run must reach (see CheckObjective).
 	Objectives []configuration.Objective
 	waited     float64 // real seconds since the last paced step

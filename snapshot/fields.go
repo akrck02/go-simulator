@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/akrck02/go-simulator/world"
 )
@@ -15,8 +16,13 @@ import (
 // "<prefix><name>.json" and the values "<prefix><name>.f32" (little-endian float32, row by row
 // from the smallest z). The header carries the size and the extent in world coordinates, and the
 // same layout as a relief in east-south axes: west = minimum x, north = −minimum z.
-func WriteFields(folder, prefix string, current *world.World, extra map[string]any) error {
+//
+// When names is not empty, only the fields with those names are written.
+func WriteFields(folder, prefix string, current *world.World, extra map[string]any, names ...string) error {
 	for _, field := range current.Fields() {
+		if len(names) > 0 && !slices.Contains(names, field.Name) {
+			continue
+		}
 		header := map[string]any{"name": field.Name, "columns": field.Columns, "rows": field.Rows, "extent": field.Extent,
 			"cell": (field.Extent.MaximumX - field.Extent.MinimumX) / float64(field.Columns),
 			"west": field.Extent.MinimumX, "north": -field.Extent.MinimumZ, "units": "km", "axes": "east-south"}

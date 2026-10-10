@@ -49,6 +49,7 @@ stages:
   - name: motion
     clock: realtime                   # or {unit: year, from: 0, to: 100, step: 1, pace: 0.4}
     snapshots: [0, 50, 100]           # stepped stages: times a run without a window saves
+    snapshot_fields: [vegetation]     # optional: the fields the snapshots save (default: all)
     rules:
       - rule: day_cycle               # or motion/day_cycle when several plugins offer it
         with: {seconds_per_day: 120}  # parameters

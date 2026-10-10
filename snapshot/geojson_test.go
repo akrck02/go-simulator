@@ -71,3 +71,23 @@ func TestFieldsAreWrittenAsGrids(t *testing.T) {
 		t.Errorf("header %v", read)
 	}
 }
+
+func TestSnapshotsCanKeepSomeFields(t *testing.T) {
+	current := world.New()
+	for _, name := range []string{"elevation", "vegetation"} {
+		patch := &world.FieldPatch{Name: name, Columns: 2, Rows: 2, Extent: &world.Extent{MaximumX: 1, MaximumZ: 1}, Values: make([]float32, 4)}
+		if err := current.ApplyChange(world.SetFieldValues(patch)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	folder := t.TempDir()
+	if err := WriteFields(folder, "year 1 ", current, nil, "vegetation"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(folder, "year 1 vegetation.f32")); err != nil {
+		t.Errorf("the vegetation field should be saved: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(folder, "year 1 elevation.f32")); err == nil {
+		t.Error("the elevation field was not asked for")
+	}
+}

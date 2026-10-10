@@ -59,7 +59,7 @@ func launchPlugin(rules *configuration.Configuration, settings configuration.Plu
 func (engine *Engine) attachStages(rules *configuration.Configuration) error {
 	names := map[string]bool{}
 	for _, settings := range rules.Stages {
-		stage := &Stage{Name: settings.Name, Clock: Clock(settings.Clock), Snapshots: settings.Snapshots,
+		stage := &Stage{Name: settings.Name, Clock: Clock(settings.Clock), Snapshots: settings.Snapshots, SnapshotFields: settings.SnapshotFields,
 			Objectives: settings.Objectives}
 		for _, ruleSettings := range settings.Rules {
 			rule, err := engine.attachRule(stage, ruleSettings, names)
