@@ -5,14 +5,15 @@ package world
 // reads it asks for that name in its interest. Names outside the vocabulary are allowed, but a
 // name another plugin may want to read belongs here.
 //
-// Units: lengths, positions and heights are in world units, the unit of the scene (kilometres in
-// the scenes of go-renderer's examples), on the ground plane (x, z) with y up. Every other quantity
-// has the unit written next to its name.
+// Units: positions and the sizes of shapes are in world units, the unit of the scene (kilometres
+// in the example scenes), on the ground plane (x, z) with y up: they are what gets
+// drawn. Fields and properties are data, in physical units written next to their names (heights
+// in metres, temperatures in °C), so models read them without knowing the scene's scale.
 
 // Fields: grids over the ground.
 const (
-	FieldElevation     = "elevation"     // height of the ground, world units
-	FieldWaterDepth    = "water_depth"   // depth of water over the ground, world units (0 = dry)
+	FieldElevation     = "elevation"     // height of the ground, metres
+	FieldWaterDepth    = "water_depth"   // depth of water over the ground, metres (0 = dry)
 	FieldSlope         = "slope"         // rise over run of the ground, no unit
 	FieldTemperature   = "temperature"   // mean yearly temperature, °C
 	FieldPrecipitation = "precipitation" // yearly rain and snow, mm
