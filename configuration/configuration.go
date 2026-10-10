@@ -55,6 +55,8 @@ type Stage struct {
 	Clock     Clock     `yaml:"clock"`
 	Rules     []Rule    `yaml:"rules"`
 	Snapshots []float64 `yaml:"snapshots"` // stage times at which a run without a window saves the world
+	// SnapshotFields are the fields the snapshots save (none: every field of the world).
+	SnapshotFields []string `yaml:"snapshot_fields"`
 	// Objectives are what the run must reach; runs without a window check them.
 	Objectives []Objective `yaml:"objectives"`
 }
