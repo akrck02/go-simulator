@@ -1,5 +1,7 @@
 # go-simulator
 
+> **Note:** this project was written with an AI assistant and is pending thorough review. See the [AI disclosure](#ai-disclosure).
+
 Simulations for scenes drawn by [go-renderer](../go-renderer): things that move, wind gusts,
 drifting clouds and the passing of the day. The renderer stays agnostic: it draws the scene as it
 is, and this project changes the scene between frames through `viewer.Run`'s update function.
@@ -47,3 +49,13 @@ default 12.42 h in proportion to the day length) and `-no-tides`.
 | `,` `.` | Halve or double the speed of time |
 
 Plus the viewer's controls (see go-renderer's README).
+
+## AI disclosure
+
+I write most of my code by hand, so I want to be clear about this project: **it was written by an
+AI assistant (Claude, by Anthropic) under my direction.** I decided what to build and how it should
+behave; the code, the tests and the documentation were written by the AI. Every commit made this
+way carries a `Co-Authored-By: Claude` line (3 of 3 commits here).
+
+**Status: pending thorough review.** The code compiles and its tests pass, but I have not yet
+reviewed it line by line. Treat it as a working draft, not as code I vouch for.
