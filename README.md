@@ -1,5 +1,7 @@
 # go-simulator
 
+> **Note:** this project was written with an AI assistant and is pending thorough review. See the [AI disclosure](#ai-disclosure).
+
 Simulations for [go-renderer](https://github.com/akrck02/go-renderer) scenes. The simulators are **plugins**: separate
 programs, in their own repositories and in any language, that the host starts at runtime. A
 **rules file** says which plugins to use, which of their rules to run, with what parameters, on
@@ -45,3 +47,13 @@ Everything is in [docs/](docs/README.md):
 
 During development the renderer and the scene builder are used from the folders next to this one
 (`replace` in `go.mod`). Building the viewer needs GEOS (`pkg-config geos`) for the scene builder.
+
+## AI disclosure
+
+I write most of my code by hand, so I want to be clear about this project: **it was written by an
+AI assistant (Claude, by Anthropic) under my direction.** I decided what to build and how it should
+behave; the code, the tests and the documentation were written by the AI. Every commit made this
+way carries a `Co-Authored-By: Claude` line (17 of 17 commits here).
+
+**Status: pending thorough review.** The code compiles and its tests pass, but I have not yet
+reviewed it line by line. Treat it as a working draft, not as code I vouch for.
