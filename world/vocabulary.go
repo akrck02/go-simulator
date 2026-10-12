@@ -30,6 +30,13 @@ const (
 	EventVegetation = "vegetation" // names of the values of FieldVegetation, with each species' "labels" and "forms"
 )
 
+// Event data: any emit event can carry a short message for whoever watches the run. The viewer
+// shows it for a few seconds under its header, newest first.
+const (
+	EventDataNotice = "notice" // text of the message
+	EventDataIcon   = "icon"   // optional: name of a Lucide icon (https://lucide.dev) shown before it
+)
+
 // Kinds: what an entity is.
 const (
 	KindStreet   = "street"   // a line with a width; property PropertyClass says which street
@@ -54,4 +61,14 @@ const (
 	PropertySpecies = "species" // what kind of plant or animal
 	PropertyAnchor  = "anchor"  // true on entities a rules file fixed: plugins build around them, never over them
 	PropertyRole    = "role"    // what an anchor means to the plugins: "obstacle", "road", "gate", "plant", "region"…
+)
+
+// Overlay properties: what the viewer writes over an entity. All are optional, and a null value
+// takes them away. They are for whoever watches a run; models should not read them.
+const (
+	PropertyLabel      = "label"       // a short text shown above the entity
+	PropertyIcon       = "icon"        // name of a Lucide icon (https://lucide.dev) shown before the label, or alone
+	PropertyBadge      = "badge"       // a very short text in a small pill under the label: "3/10"
+	PropertyLabelColor = "label_color" // "#rrggbb": colour of the icon and the badge (the text stays dark)
+	PropertyPinned     = "pinned"      // a number: show the label as that line of the header, top-left, instead
 )
