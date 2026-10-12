@@ -44,6 +44,9 @@ func (bridge *Bridge) applyChange(change world.Change) error {
 	case world.ClearArea:
 		bridge.clearArea(change.Area)
 		return nil
+	case world.Emit:
+		bridge.showEvent(change.Event)
+		return nil
 	}
 	return nil
 }
@@ -63,6 +66,8 @@ func (bridge *Bridge) add(entity *world.Entity) error {
 	}
 	bridge.attach(node, parent)
 	bridge.nodes[entity.Identifier] = node
+	bridge.placeLabelAnchor(entity.Identifier, node, entity.Shape)
+	bridge.showProperties(entity.Identifier, node, node.Tags)
 	return nil
 }
 
@@ -118,6 +123,7 @@ func (bridge *Bridge) forget(node *scene.Node) {
 		if candidate == node {
 			delete(bridge.nodes, identifier)
 			bridge.leaveBatch(identifier)
+			bridge.forgetOverlay(identifier)
 		}
 	}
 }
@@ -147,8 +153,12 @@ func (bridge *Bridge) modify(patch *world.Entity) error {
 		if err := bridge.shape(patch.Identifier, node, patch.Shape); err != nil {
 			return err
 		}
+		bridge.placeLabelAnchor(patch.Identifier, node, patch.Shape)
 	}
-	node.Tags = mergeTags(node.Tags, patch.Properties)
+	if len(patch.Properties) > 0 {
+		node.Tags = mergeTags(node.Tags, patch.Properties)
+		bridge.showProperties(patch.Identifier, node, node.Tags)
+	}
 	return nil
 }
 

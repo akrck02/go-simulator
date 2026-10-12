@@ -23,7 +23,9 @@ type Bridge struct {
 	batchOf    map[world.Identifier]string // batch each batched entity is drawn in
 	kinds      map[world.Identifier]string // kind of every entity added, for the builder
 	builder    BatchBuilder                // draws the batches it handles; nil = the bridge draws them all
-	Ignored    map[world.Operation]int     // changes the scene has no way to show yet, counted
+	overlay    map[world.Identifier]*overlayEntry
+	pinned     map[world.Identifier]pinnedLine // entities shown in the header
+	Ignored    map[world.Operation]int         // changes the scene has no way to show yet, counted
 }
 
 // FromScene describes a scene as a world: every node becomes an entity and the environment
@@ -31,8 +33,11 @@ type Bridge struct {
 func FromScene(drawn *scene.Scene) (*world.World, *Bridge) {
 	bridge := &Bridge{scene: drawn, nodes: map[world.Identifier]*scene.Node{}, parents: map[*scene.Node]*scene.Node{}, kinds: map[world.Identifier]string{},
 		meshes: map[string]*scene.Mesh{}, primitives: map[primitiveKey]*scene.Mesh{}, batches: map[string]*batch{},
-		batchOf: map[world.Identifier]string{}, Ignored: map[world.Operation]int{}}
+		batchOf: map[world.Identifier]string{}, Ignored: map[world.Operation]int{},
+		overlay: map[world.Identifier]*overlayEntry{}, pinned: map[world.Identifier]pinnedLine{}}
 	initial := world.New()
+	// the bridge shows the labels from the entities' properties from now on, the file's included
+	drawn.Overlay.Labels, drawn.Overlay.Header = nil, nil
 	for _, node := range drawn.Nodes {
 		bridge.describeNode(initial, node, nil, "")
 	}
@@ -48,6 +53,8 @@ func (bridge *Bridge) describeNode(described *world.World, node, parent *scene.N
 		bridge.meshes[node.Mesh.Name] = node.Mesh
 	}
 	_ = described.ApplyChange(world.AddEntity(entityOf(node, identifier, parentIdentifier)))
+	bridge.placeLabelAnchor(identifier, node, nil)
+	bridge.showProperties(identifier, node, node.Tags)
 	for _, child := range node.Children {
 		bridge.describeNode(described, child, node, identifier)
 	}
