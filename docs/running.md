@@ -50,6 +50,34 @@ option (`-walk`, `-night`, `-look-at`, `-capture`, `-benchmark`…; see
 | `,` `.` | Halve or double the speed of time |
 | a rule's `toggle_key` | Switch that rule on and off |
 
+### What the viewer shows
+
+Besides the scene, the viewer writes a few words over it, from the
+[overlay properties](vocabulary.md#shared-names) of the entities:
+
+- **Labels**: an entity with a `label`, an `icon` or a `badge` gets a light pill above it, with
+  the badge in a smaller pill underneath. Labels keep their size on screen at any zoom, follow
+  their entity as it moves and disappear when it is off screen, hidden or removed. When two would
+  overlap, the one nearer the camera is shown.
+- **The header**: entities with `pinned` are listed in a card at the top-left corner, by their
+  number; a badge follows the text after a dot. A clock and a few counters fit well there.
+- **Notices**: events with a `notice` appear under the header, newest first, for about six
+  seconds of the viewer's time, then fade.
+
+How high a label floats:
+
+| Shape | Label anchored at |
+|---|---|
+| `box` | the top of the box |
+| a mesh of the scene | its highest point |
+| outline | over the middle of the outline, at its `height` (just over the ground when flat) |
+| line | over its middle point, at its `height` |
+| none | the entity's position |
+
+Property-only changes (a `modify` with only `properties`) update the label at once. Captures
+(`-capture`) include the overlay. `simulate` has no window and ignores it, but its snapshots keep
+the properties.
+
 ### The bridge
 
 The bridge is the translator between the neutral world and the 3D scene. It builds the initial world from the scene (every node becomes an entity, with its glTF
@@ -62,7 +90,9 @@ scene changes:
   facades, gates and instanced models;
 - `clear_area` removes the triangles of the named nodes whose middle falls inside the outlines,
   and the instances standing there, sparing the holes;
-- the environment moves the sun, wind, clouds, tide, snow line and foliage tint.
+- the environment moves the sun, wind, clouds, tide, snow line and foliage tint;
+- the overlay properties become labels and header lines, and events with a `notice` become
+  notices (see [what the viewer shows](#what-the-viewer-shows)).
 
 ## Known limits
 

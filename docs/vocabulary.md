@@ -41,6 +41,26 @@ plugin may want to read belongs here.
 `year` (when it appeared, in the stage's clock), `use` (`housing`, `shop`, `workshop`…),
 `floors`, `class`, `sector`, `species`, `anchor` (true on anchors), `role` (what an anchor means).
 
+**Overlay properties**
+
+Any entity can carry a few words for whoever watches the run. The live viewer
+([running](running.md#what-the-viewer-shows)) draws them over the 3D scene; models should not read
+them. All are optional, and setting one to `null` takes it away.
+
+| Name | Value | Shown as |
+|---|---|---|
+| `label` | text | a short text in a light pill above the entity |
+| `icon` | text: a [Lucide](https://lucide.dev/icons) icon name | an icon before the label, or alone in a circle |
+| `badge` | text (or a number) | a very short text in a small pill under the label: `7/10` |
+| `label_color` | `"#rrggbb"` | the colour of the icon and the badge; the text stays dark so it always reads well |
+| `pinned` | a number | the label goes to the header, top-left, as that line (1 first) instead of above the entity; such entities need no shape |
+
+```json
+{"op": "add", "entity": {"id": "ferry", "kind": "boat", "shape": {"primitive": "box", "size": [4, 2, 10]},
+  "properties": {"label": "Ferry → quay", "icon": "ship", "badge": "12/40", "label_color": "#2563eb"}}}
+{"op": "add", "entity": {"id": "harbour-clock", "properties": {"label": "08:25", "icon": "clock", "pinned": 1}}}
+```
+
 **Events**
 
 | Name | Data |
@@ -49,6 +69,14 @@ plugin may want to read belongs here.
 | `vegetation` | `names`, `labels`, `forms`, `heights`: the values of the `vegetation` field |
 
 Events that name the categories of a field carry `{"names": […]}`.
+
+Any event can also carry a **notice**, a short message for whoever watches: `notice` (the text)
+and, optionally, `icon` (a Lucide icon name) and `label_color`. The live viewer shows it under its
+header for a few seconds, newest first, then fades it out:
+
+```json
+{"op": "emit", "event": {"name": "arrivals", "data": {"notice": "Boat 4 moored at the north quay", "icon": "anchor"}}}
+```
 
 ## Conditions
 
