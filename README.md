@@ -1,6 +1,6 @@
 <div align="center">
 
-# go-simulator
+# Go simulator
 
 **Simulations for [go-renderer](https://github.com/akrck02/go-renderer) scenes, built from plugins.**
 The simulators are separate programs, in any language, that the host starts at runtime. A rules
