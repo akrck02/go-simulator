@@ -1,4 +1,4 @@
-# Writing plugins
+# 🔌 Writing plugins
 
 A plugin is a small program that offers **rules**: things it knows how to do, such as "turn the
 sun" or "grow the town for a year". You write the rules; the host decides when to call them and
@@ -18,10 +18,10 @@ A rule is anything with a `Step` method. It reads `context.World` (the plugin's 
 and describes what changes through the context:
 
 ```go
-type lighthouse struct{ angle float64 }
+type lighthouse struct{ angle, speed float64 }
 
 func (rule *lighthouse) Step(context *plugin.Context) error {
-	rule.angle += context.Step
+	rule.angle += rule.speed * context.Step
 	beam := spatial.RotationY(rule.angle)
 	context.Modify(&world.Entity{Identifier: "lighthouse-beam", Transform: &beam})
 	return nil

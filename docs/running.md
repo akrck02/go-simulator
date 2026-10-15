@@ -1,4 +1,4 @@
-# Running
+# ▶️ Running
 
 There are two ways to run a simulation. **Without a window**, it runs as fast as it can and writes
 files: snapshots to draw maps from, every event, and whether the objectives were met. **Live**, it
@@ -52,31 +52,17 @@ option (`-walk`, `-night`, `-look-at`, `-capture`, `-benchmark`…; see
 
 ### What the viewer shows
 
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/hero-dark.png">
+  <img alt="The live viewer: a made-up island with labelled boats, and a header with a clock, counters and notices" src="images/hero-light.png" width="720">
+</picture>
+</p>
+
 Besides the scene, the viewer writes a few words over it, from the
-[overlay properties](vocabulary.md#shared-names) of the entities:
-
-- **Labels**: an entity with a `label`, an `icon` or a `badge` gets a light pill above it, with
-  the badge in a smaller pill underneath. Labels keep their size on screen at any zoom, follow
-  their entity as it moves and disappear when it is off screen, hidden or removed. When two would
-  overlap, the one nearer the camera is shown.
-- **The header**: entities with `pinned` are listed in a card at the top-left corner, by their
-  number; a badge follows the text after a dot. A clock and a few counters fit well there.
-- **Notices**: events with a `notice` appear under the header, newest first, for about six
-  seconds of the viewer's time, then fade.
-
-How high a label floats:
-
-| Shape | Label anchored at |
-|---|---|
-| `box` | the top of the box |
-| a mesh of the scene | its highest point |
-| outline | over the middle of the outline, at its `height` (just over the ground when flat) |
-| line | over its middle point, at its `height` |
-| none | the entity's position |
-
-Property-only changes (a `modify` with only `properties`) update the label at once. Captures
-(`-capture`) include the overlay. `simulate` has no window and ignores it, but its snapshots keep
-the properties.
+[overlay properties](vocabulary.md#shared-names) of the entities: **labels** above them, a
+**header** in the top-left corner and **notices** under it. Captures (`-capture`) include them.
+See [labels, header and notices](overlay.md).
 
 ### The bridge
 
@@ -92,13 +78,9 @@ scene changes:
   and the instances standing there, sparing the holes;
 - the environment moves the sun, wind, clouds, tide, snow line and foliage tint;
 - the overlay properties become labels and header lines, and events with a `notice` become
-  notices (see [what the viewer shows](#what-the-viewer-shows)).
+  notices (see [labels, header and notices](overlay.md)).
 
 ## Known limits
 
-- The bridge does not draw fields yet: a scene builder can turn them into terrain or vegetation.
-- Ground shapes take their height from the scene's walkable ground; the first time, the renderer
-  builds its ground index, which can take a few seconds on a large terrain.
-- Removed meshes leave the scene, but go-renderer has no call yet to free their GPU memory.
-- Plugins resolve go-renderer through this module's requirements, so a plugin's `go.mod` needs the
-  same `replace` during development.
+What the bridge does not do yet is listed in the documentation index, under
+[not done yet](README.md#-not-done-yet).
