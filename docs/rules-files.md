@@ -1,4 +1,4 @@
-# Rules files
+# 📜 Rules files
 
 A rules file is the recipe of a simulation. In one readable YAML file you say which simulators
 to use, what each one should do and with which numbers, how time passes, and what the result must
@@ -7,6 +7,10 @@ look like. You never write code to set up a simulation: you write a rules file.
 A few things hold everywhere: relative paths start at the rules file's own folder, `~/` starts at
 your home folder, and plugins are told where the rules file lives (`GO_SIMULATOR_RULES_DIRECTORY`)
 so they find your files the same way.
+
+<p align="center">
+  <img alt="A rules file's life: 1 read, with includes merged; 2 checked, every mistake at once; 3 plugins started and described, every rule attached; 4 anchors added; 5 each plugin started with what it reads; 6 the stages run on their clocks; 7 results: objectives, snapshots and events, or the live scene" src="images/rules-life.svg" width="880">
+</p>
 
 ## A complete example
 
@@ -55,7 +59,7 @@ stages:
 Read it top to bottom: two places are fixed (anchors), three plugins are started, and two stages
 run side by side, a town growing a year at a time and the weather moving in real time.
 
-## plugins
+## `plugins`
 
 Each entry starts one simulator.
 
@@ -68,7 +72,7 @@ Each entry starts one simulator.
 
 The host starts every plugin, asks for its description (`describe`) and checks every rule exists.
 
-## stages
+## `stages`
 
 A stage is a group of rules that share a clock. Several stages can run together on the same world.
 
@@ -87,7 +91,7 @@ plugins to read. Without a window it runs as fast as it can; with a window it ta
 `pace` real seconds (0: only on request, for example with `-advance`). Steps happen before the
 rules run, so the first step of `{from: -1, step: 1}` lands on year 0.
 
-## rules
+## `rules`
 
 Each entry is one use of a rule a plugin offers. The same rule can be used several times, with
 different names and numbers (two towns, say).
@@ -107,7 +111,7 @@ later files replace earlier keys and the rule's own keys win over all of them. A
 live in its own file, with comments and notes for people (plugins ignore keys they do not know).
 An included file cannot include others, and paths inside it still start at the rules file's folder.
 
-## anchors
+## `anchors`
 
 Sometimes the story says "the gate is here" or "the old oak stands on this hill". Anchors are how
 you tell the simulators: they are places the story fixes. The host adds them to the world before the simulation starts, as hidden
@@ -124,7 +128,7 @@ over them, and can use them in habitats or regions.
 | `properties` | Free data, for example `{species: old_oak, crown: 20}` for the flora |
 | `source` | Where it comes from, for people |
 
-## objectives
+## `objectives`
 
 Objectives are the result you expect, written down: "the town has a wall by year 60", "about
 6,000 people at the end". They turn "it looks about right" into something checked every run. Runs without a window check each objective when its stage reaches its time,
@@ -143,7 +147,7 @@ only reports them). An objective whose time falls outside its stage's clock coun
 
 Give either `count` or `event`. A count with no bounds asks for at least one.
 
-## scene_style
+## `scene_style`
 
 Plugins publish data, not looks: a building is an outline, a height and some properties. A
 [go-scene-builder](https://github.com/akrck02/go-scene-builder) style file. With it, the viewer draws the batches its

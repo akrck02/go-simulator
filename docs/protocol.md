@@ -1,4 +1,4 @@
-# Protocol
+# 📡 Protocol
 
 You only need this page to write a plugin in a language other than Go (the Go toolkit does all of
 this for you), or to understand what travels between the host and its plugins.
@@ -31,6 +31,10 @@ grid of a million cells does not mean writing a million numbers as text.
 
 A conversation always follows the same order: the host asks who the plugin is, tells it which rules
 to set up, gives it the world, and then asks it to step again and again until it says stop.
+
+<p align="center">
+  <img alt="Host and plugin: describe → description, attach → attached once per rule instance, start with the snapshot → changes, then step → changes again and again, and finally stop, after which the plugin exits" src="images/protocol.svg" width="880">
+</p>
 
 | Host sends | Body | Plugin answers |
 |---|---|---|
