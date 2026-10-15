@@ -1,4 +1,4 @@
-# Rules files
+# 📜 Rules files
 
 A rules file is the recipe of a simulation. In one readable YAML file you say which simulators
 to use, what each one should do and with which numbers, how time passes, and what the result must
@@ -7,6 +7,10 @@ look like. You never write code to set up a simulation: you write a rules file.
 A few things hold everywhere: relative paths start at the rules file's own folder, `~/` starts at
 your home folder, and plugins are told where the rules file lives (`GO_SIMULATOR_RULES_DIRECTORY`)
 so they find your files the same way.
+
+<p align="center">
+  <img alt="A rules file's life: 1 read, with includes merged; 2 checked, every mistake at once; 3 plugins started and described, every rule attached; 4 anchors added; 5 each plugin started with what it reads; 6 the stages run on their clocks; 7 results: objectives, snapshots and events, or the live scene" src="images/rules-life.svg" width="880">
+</p>
 
 ## A complete example
 

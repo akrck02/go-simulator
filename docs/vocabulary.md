@@ -1,4 +1,4 @@
-# Vocabulary and conditions
+# 📖 Vocabulary and conditions
 
 Plugins never talk to each other, so they need to agree on names. If the terrain calls the height
 of the ground `elevation` and the climate looks for `elevation`, they work together without knowing
@@ -44,7 +44,7 @@ plugin may want to read belongs here.
 **Overlay properties**
 
 Any entity can carry a few words for whoever watches the run. The live viewer
-([running](running.md#what-the-viewer-shows)) draws them over the 3D scene; models should not read
+([labels, header and notices](overlay.md)) draws them over the 3D scene; models should not read
 them. All are optional, and setting one to `null` takes it away.
 
 | Name | Value | Shown as |
