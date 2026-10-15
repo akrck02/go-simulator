@@ -1,4 +1,4 @@
-# How it fits together
+# 🏛️ How it fits together
 
 ## A theatre with stagehands
 
@@ -7,14 +7,9 @@ that is [go-renderer](https://github.com/akrck02/go-renderer). The **stagehand**
 go-simulator, the host. And the **script** for each kind of change lives with specialists,
 the **plugins**: one knows how rain falls, another how forests grow, another how towns spread.
 
-```mermaid
-flowchart LR
-    rules["Rules file<br/>which plugins, which rules,<br/>which clock, what must come out"]
-    host["go-simulator<br/>keeps the world, runs the clocks,<br/>forwards and applies changes"]
-    out["Maps and scenes<br/>files without a window,<br/>or a live 3D scene"]
-    rules --> host --> out
-    host <--> terrain[terrain] & climate[climate] & flora[flora] & urban[urban] & motion[motion]
-```
+<p align="center">
+  <img alt="A rules file → the go-simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="images/architecture.svg" width="880">
+</p>
 
 A plugin never draws anything and never talks to another plugin. It reads the part of the world it
 cares about and answers with **changes**. That one rule is what makes the whole thing work: plugins

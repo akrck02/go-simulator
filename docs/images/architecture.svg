@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 440" width="880" height="440" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    .bg { fill: #ffffff; }
+    .box { fill: #f6f8fa; stroke: #d0d7de; }
+    .accent { fill: #ddf4ff; stroke: #54aeff; }
+    .soft { fill: none; stroke: #d0d7de; stroke-dasharray: 5 4; }
+    .title { fill: #1f2328; font-size: 15px; font-weight: 600; }
+    .text { fill: #59636e; font-size: 12.5px; }
+    .code { fill: #0969da; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .label { fill: #59636e; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .number { fill: #0969da; font-size: 13px; font-weight: 700; }
+    .arrow { stroke: #8c959f; stroke-width: 1.6; fill: none; }
+    .life { stroke: #d0d7de; stroke-width: 1.4; stroke-dasharray: 4 4; fill: none; }
+    .head { fill: #8c959f; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .box { fill: #161b22; stroke: #30363d; }
+      .accent { fill: #0c2d4b; stroke: #1f6feb; }
+      .soft { stroke: #30363d; }
+      .title { fill: #e6edf3; }
+      .text { fill: #9198a1; }
+      .code { fill: #4493f8; }
+      .label { fill: #9198a1; }
+      .number { fill: #4493f8; }
+      .arrow { stroke: #6e7681; }
+      .life { stroke: #30363d; }
+      .head { fill: #6e7681; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="head" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="880" height="440" rx="12"/>
+
+  <!-- the rules file -->
+  <rect class="box" x="24" y="110" width="170" height="110" rx="10" stroke-width="1.2"/>
+  <text class="code" x="109" y="140" text-anchor="middle">rules.yaml</text>
+  <text class="title" x="109" y="164" text-anchor="middle">A rules file</text>
+  <text class="text" x="109" y="186" text-anchor="middle">plugins and their rules,</text>
+  <text class="text" x="109" y="203" text-anchor="middle">clocks and objectives</text>
+
+  <!-- the host -->
+  <path class="arrow" d="M194,165 H246" marker-end="url(#arrow)"/>
+  <rect class="accent" x="250" y="80" width="260" height="170" rx="10" stroke-width="1.4"/>
+  <text class="code" x="380" y="108" text-anchor="middle">go-simulator</text>
+  <text class="title" x="380" y="132" text-anchor="middle">The host</text>
+  <text class="text" x="380" y="156" text-anchor="middle">keeps the world: entities,</text>
+  <text class="text" x="380" y="173" text-anchor="middle">fields and the environment</text>
+  <text class="text" x="380" y="197" text-anchor="middle">runs the clocks, applies the changes</text>
+  <text class="text" x="380" y="214" text-anchor="middle">and forwards each one to the</text>
+  <text class="text" x="380" y="231" text-anchor="middle">plugins that read it</text>
+
+  <!-- the plugins -->
+  <path class="arrow" d="M512,165 H586" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text class="label" x="549" y="152" text-anchor="middle">protocol</text>
+  <text class="label" x="549" y="186" text-anchor="middle">stdin/stdout</text>
+  <path class="arrow" d="M592,52 V278"/>
+  <path class="arrow" d="M592,52 H600 M592,99 H600 M592,146 H600 M592,193 H600 M592,240 H600 M592,278 H600"/>
+  <rect class="box" x="600" y="34" width="256" height="36" rx="8" stroke-width="1.2"/>
+  <text class="title" x="616" y="57">terrain</text><text class="text" x="700" y="57">the ground</text>
+  <rect class="box" x="600" y="81" width="256" height="36" rx="8" stroke-width="1.2"/>
+  <text class="title" x="616" y="104">climate</text><text class="text" x="700" y="104">heat, rain, biomes</text>
+  <rect class="box" x="600" y="128" width="256" height="36" rx="8" stroke-width="1.2"/>
+  <text class="title" x="616" y="151">flora</text><text class="text" x="700" y="151">what grows where</text>
+  <rect class="box" x="600" y="175" width="256" height="36" rx="8" stroke-width="1.2"/>
+  <text class="title" x="616" y="198">urban</text><text class="text" x="700" y="198">towns that spread</text>
+  <rect class="box" x="600" y="222" width="256" height="36" rx="8" stroke-width="1.2"/>
+  <text class="title" x="616" y="245">motion</text><text class="text" x="700" y="245">day, wind, tides</text>
+  <text class="text" x="616" y="283">… or your own, in any language</text>
+
+  <!-- where it goes -->
+  <path class="arrow" d="M330,250 C330,290 220,290 220,322" marker-end="url(#arrow)"/>
+  <path class="arrow" d="M430,250 C430,290 600,290 600,322" marker-end="url(#arrow)"/>
+  <rect class="box" x="40" y="326" width="360" height="90" rx="10" stroke-width="1.2"/>
+  <text class="code" x="60" y="352">cmd/simulate</text>
+  <text class="title" x="160" y="352">without a window</text>
+  <text class="text" x="60" y="376">as fast as it can, to files: snapshots (GeoJSON,</text>
+  <text class="text" x="60" y="393">grids), events.jsonl and objectives.json</text>
+  <rect class="box" x="420" y="326" width="436" height="90" rx="10" stroke-width="1.2"/>
+  <text class="code" x="440" y="352">cmd/simulator</text>
+  <text class="title" x="548" y="352">live, in the viewer</text>
+  <text class="text" x="440" y="376">the bridge draws every change in go-renderer's scene,</text>
+  <text class="text" x="440" y="393">with labels, a header and notices over it</text>
+</svg>
