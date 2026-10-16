@@ -1,0 +1,146 @@
+# Proposal: plugins describe what they publish
+
+Status: **step 1 built** (protocol 2, toolkit helpers, the host's checks; see `docs/protocol.md`). Unit
+mismatches are errors from the start. Steps 2 and 3 are next.
+
+## The problem
+
+Plugins never talk to each other, so they agree on names: the terrain publishes `elevation`, the
+climate asks for `elevation`, and neither knows the other exists. Today that agreement lives in
+two places that do not scale:
+
+- **`world/vocabulary.go`**, Go constants in the host's own module. The host does not need them
+  (outside `world/`, it only uses the names of anchors, which it makes itself), but having them
+  there suggests that a new simulator has to change go-simulator to add a name, and plugins in
+  other languages cannot use them at all. It also goes against the engine's own rule: no plugin's
+  vocabulary (cities, plants, rain…) in `world`, `host` or `protocol`.
+- **`Writes` in the `describe` message**, a list of names the host never reads. It mixes kinds
+  and fields (`["elevation", "slope", "river"]`) without saying which is which, and it carries no
+  units, so nothing can tell that one plugin writes `elevation` in metres and another reads it as
+  feet.
+
+The result: a contract between two plugins is only checked when the simulation gives strange
+results.
+
+## The idea
+
+Every plugin already introduces itself to the host with `describe`. Let that description carry
+the contract of what each rule publishes, and what it expects of what it reads. The host compares
+the descriptions of the plugins of a rules file when they start, before the first step, and the
+vocabulary becomes a page generated from the descriptions of the plugins we know, not code in the
+host.
+
+The names stay free text, as they are now: nothing has to be registered anywhere.
+
+## The protocol
+
+Two new optional members of `RuleDescription`. The JSON is additive (a plugin that does not send
+them still decodes), but a protocol change is a version change: the protocol goes to **version
+2**, `docs/protocol.md` describes the new members and every plugin moves with it. For the move,
+the host accepts plugins of version 1 and 2 and treats version 1 as "outputs not described".
+
+```go
+type RuleDescription struct {
+	// … as now; Writes stays for older hosts
+	Publishes []OutputDescription `json:"publishes,omitempty"`
+	Expects   []InputDescription  `json:"expects,omitempty"`
+}
+
+// OutputDescription is one thing a rule publishes.
+type OutputDescription struct {
+	Name       string              `json:"name"`                 // "drainage_area", "river", "biomes"
+	What       string              `json:"what"`                 // "field", "kind", "event", "environment"
+	Unit       string              `json:"unit,omitempty"`       // fields: "m", "km²", "°C", "1", "index"
+	Names      string              `json:"names,omitempty"`      // "index" fields: the event that names their values
+	Summary    string              `json:"summary,omitempty"`
+	Properties []OutputDescription `json:"properties,omitempty"` // kinds and events: their members, with units
+}
+
+// InputDescription is one thing a rule reads, and what it needs from it.
+type InputDescription struct {
+	Name     string `json:"name"`
+	What     string `json:"what"`
+	Unit     string `json:"unit,omitempty"`
+	Required bool   `json:"required,omitempty"` // the rule cannot work without it
+}
+```
+
+What the terrain's erosion rule would say:
+
+```json
+"publishes": [
+  {"name": "elevation", "what": "field", "unit": "m", "summary": "height of the ground"},
+  {"name": "drainage_area", "what": "field", "unit": "km²", "summary": "ground draining through each cell"},
+  {"name": "river", "what": "kind", "summary": "a line with a width",
+   "properties": [{"name": "width", "unit": "world"}, {"name": "drainage_area", "unit": "km²"}]}
+],
+"expects": [{"name": "elevation", "what": "field", "unit": "m", "required": true}]
+```
+
+`Reads` stays what it is: the interest that decides what the host forwards. `Expects` is what the
+rule needs from it, which the host can check.
+
+**Units** are compared as text, from a short list written in the protocol page (SI units and the
+ones the scenes use: `m`, `km`, `km²`, `mm`, `°C`, `m/m`, `1` for shares, `index` for categories,
+`world` for world units). The host never converts: a mismatch is an error to fix in a plugin, not
+something to guess.
+
+## What the host checks
+
+When it builds the engine, after every plugin has described itself and before it starts them,
+with the rules in the order of the rules file:
+
+| Check | Result |
+|---|---|
+| two rules publish the same field, kind property or event member with different units | error |
+| a rule expects a unit other than the one the rule publishing it gives | error |
+| a rule requires something no rule publishes and the initial world does not have | error |
+| a rule reads something only a later plugin publishes, so its first step will not have it | warning |
+| an `index` field without the event that names its values | warning |
+
+Plugins that do not describe their outputs are not checked; the host says once which ones they
+are, so a rules file can tell what is checked and what is not.
+
+## The vocabulary
+
+`docs/vocabulary.md` becomes a page generated by a small command (`cmd/vocabulary`) from the
+descriptions of the plugins a rules file names: every name, what it is, its unit and who
+publishes and reads it. The same descriptions already give each plugin's `docs/rules.md`, so both
+can come from one tool, and the hand-made copies in every repository stop drifting.
+
+In `world/vocabulary.go` remain only the names the host itself handles (anchors: `anchor`, `role`
+and the kind `anchor`). The other constants move to the generated page; a plugin names its
+outputs as its own constants, as the terrain plugin already does with `drainage_area`.
+
+## The toolkit
+
+In Go, the `plugin` package gets helpers so describing an output is one line:
+
+```go
+Publishes: []protocol.OutputDescription{
+	plugin.Field("elevation", "m", "height of the ground"),
+	plugin.Kind("river", "a line with a width", plugin.Property("width", "world")),
+},
+Expects: []protocol.InputDescription{plugin.NeedsField("elevation", "m")},
+```
+
+## Steps
+
+1. Protocol members, toolkit helpers and the host's checks, with tests; the protocol page
+   explains them and lists the units.
+2. The plugins describe their outputs: terrain, climate, flora, urban, motion. Each one is a small
+   change in its own repository.
+3. `cmd/vocabulary` and the generated `rules.md` of every plugin; `world/vocabulary.go` keeps only
+   the anchors.
+
+Each step works on its own: a host with step 1 still runs plugins of version 1, and a plugin of
+version 2 still runs on such a host. Once every plugin is at version 2, the host can stop
+accepting version 1.
+
+## Open questions
+
+- ~~Should a unit mismatch be an error from the start?~~ Decided: yes, an error from the start.
+- Is `world` enough for shapes, or should a kind say that its lines and outlines are on the ground
+  plane (x, z)?
+- Do events need versions (`biomes` with `names` today, maybe `colors` tomorrow), or are optional
+  members enough?

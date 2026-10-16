@@ -13,8 +13,8 @@ import (
 // Builtin is a plugin the host program carries inside; rules files name it with "builtin: true".
 type Builtin func(*protocol.Connection) error
 
-// Build starts the plugins of a rules file, attaches its rules and returns the engine, ready to
-// Start. The world is the initial state (for example, built from a scene); nil means empty.
+// Build starts the plugins of a rules file, attaches its rules, checks that their contracts agree
+// (see contracts.go) and returns the engine, ready to Start. The world is the initial state (for example, built from a scene); nil means empty.
 func Build(rules *configuration.Configuration, initial *world.World, builtins map[string]Builtin) (*Engine, error) {
 	if initial == nil {
 		initial = world.New()
@@ -28,6 +28,12 @@ func Build(rules *configuration.Configuration, initial *world.World, builtins ma
 		return nil, err
 	}
 	if err := engine.attachStages(rules); err != nil {
+		_ = engine.Close()
+		return nil, err
+	}
+	warnings, err := engine.checkContracts()
+	engine.Warnings = warnings
+	if err != nil {
 		_ = engine.Close()
 		return nil, err
 	}

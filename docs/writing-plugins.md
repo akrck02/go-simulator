@@ -47,6 +47,9 @@ turn := plugin.Definition{
 		},
 		Reads:  world.Interest{Kinds: []string{"beam"}},
 		Writes: []string{"beam"},
+		Publishes: []protocol.OutputDescription{
+			plugin.Kind("beam", "the lighthouse's turning beam, moved by its transform"),
+		},
 	},
 	New: func(parameters plugin.Parameters) (plugin.Rule, error) {
 		return &lighthouse{speed: parameters.Number("speed", 1)}, nil
@@ -56,6 +59,14 @@ turn := plugin.Definition{
 
 Declare every parameter, what the rule reads and what it writes: the host sends the plugin only
 what its rules read, and tools build references from the description.
+
+`Publishes` and `Expects` are the rule's [contracts](protocol.md#contracts): what it publishes and
+what it needs, with units. The host compares them before the first step and refuses to start when
+two plugins disagree, so a wrong unit shows at once instead of as a strange result. The `plugin`
+package has one-line helpers: `plugin.Field("elevation", "m", "height of the ground")`,
+`plugin.IndexField("biome", "biomes", …)`, `plugin.Kind`, `plugin.Event` and `plugin.Property`
+for what it publishes; `plugin.NeedsField("elevation", "m")`, `plugin.ReadsField`,
+`plugin.ReadsKind` and `plugin.ReadsEvent` for what it reads.
 
 ### 3. The plugin
 

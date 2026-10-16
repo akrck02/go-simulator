@@ -65,6 +65,9 @@ func run(rulesPath, scenePath, output string, failOnMissedObjectives bool) error
 		return err
 	}
 	defer engine.Close()
+	for _, warning := range engine.Warnings {
+		fmt.Fprintln(os.Stderr, "warning:", warning)
+	}
 	recorder, err := newRecorder(output)
 	if err != nil {
 		return err

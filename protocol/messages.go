@@ -19,8 +19,13 @@ package protocol
 
 import "github.com/akrck02/go-simulator/world"
 
-// Version is the protocol version; host and plugin must agree.
-const Version = 1
+// Version is the protocol version plugins of this toolkit speak. Version 2 added the contracts of
+// rules (Publishes and Expects; see contracts.go).
+const Version = 2
+
+// OldestVersion is the oldest protocol version the host still accepts. A version 1 plugin works
+// as before; its rules are just not checked, because they do not describe their contracts.
+const OldestVersion = 1
 
 // Kind names a message.
 type Kind string
@@ -52,7 +57,9 @@ type RuleDescription struct {
 	Summary    string                 `json:"summary,omitempty"`
 	Parameters []ParameterDescription `json:"parameters,omitempty"`
 	Reads      world.Interest         `json:"reads"`
-	Writes     []string               `json:"writes,omitempty"` // kinds, fields or "environment" it changes
+	Writes     []string               `json:"writes,omitempty"`    // kinds, fields or "environment" it changes
+	Publishes  []OutputDescription    `json:"publishes,omitempty"` // what it publishes, with units (version 2)
+	Expects    []InputDescription     `json:"expects,omitempty"`   // what it needs from what it reads (version 2)
 	Extra      map[string]any         `json:"extra,omitempty"`
 }
 
