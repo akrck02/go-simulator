@@ -5,7 +5,8 @@ this for you), or to understand what travels between the host and its plugins.
 
 The idea is simple: the host starts the plugin as a program and they talk through the plugin's
 standard input and output, one message at a time. The plugin's standard error is free for its own
-logs. Any language that can read and write bytes can be a plugin. Protocol version: 1.
+logs. Any language that can read and write bytes can be a plugin. Protocol version: 2 (the host still
+accepts plugins of version 1; see [contracts](#contracts)).
 
 ## Frames
 
@@ -38,7 +39,7 @@ to set up, gives it the world, and then asks it to step again and again until it
 
 | Host sends | Body | Plugin answers |
 |---|---|---|
-| `describe` | — | `description`: `{protocol, name, version, summary, rules: [{name, summary, parameters, reads, writes}]}` |
+| `describe` | — | `description`: `{protocol, name, version, summary, rules: [{name, summary, parameters, reads, writes, publishes, expects}]}` |
 | `attach` | `{instance, rule, parameters}` | `attached`: `{instance}` |
 | `start` | `{snapshot: change set}` | `changes`: a change set |
 | `step` | `{stage, time, step, instances, incoming: [changes]}` | `changes`: a change set |
@@ -55,6 +56,46 @@ Any answer can instead be `error` with `{message}`; the host stops the simulatio
 
 A rule's `parameters` are described as `{name, type, default, summary}` with type `number`,
 `boolean`, `text`, `vector`, `list` or `map`.
+
+## Contracts
+
+Plugins never talk to each other, so they agree on names: one publishes `elevation`, another asks
+for `elevation`. Since version 2 a rule says what it publishes and what it needs, with units, and
+the host compares the rules a rules file attaches **before the first step**. The names are free
+text: nothing has to be registered anywhere.
+
+```json
+"publishes": [
+  {"name": "elevation", "what": "field", "unit": "m", "summary": "height of the ground"},
+  {"name": "biome", "what": "field", "unit": "index", "names": "biomes"},
+  {"name": "biomes", "what": "event", "properties": [{"name": "names"}]},
+  {"name": "river", "what": "kind", "properties": [{"name": "width", "unit": "world"}]}
+],
+"expects": [{"name": "elevation", "what": "field", "unit": "m", "required": true}]
+```
+
+- `what` is `field`, `kind`, `event` or `environment`.
+- `unit` is one of `m`, `km`, `m²`, `km²`, `mm`, `°C`, `m/m`, `1` (a share or a plain number),
+  `index` (a category; `names` is the event that names the values), `world` (the scene's world
+  units), `s` or `year`. Fields need one; properties that are not quantities (a name, a class)
+  leave it out. Units are compared as text and never converted.
+- `properties` are the properties of a kind's entities or the members of an event's data.
+- `expects` says what the rule needs from what it reads; `reads` still decides what the host
+  sends it. `required` means the rule cannot work without it.
+
+The host refuses to start when:
+
+- the same field, property or event member is published in two units;
+- a rule expects a unit other than the one published;
+- a rule requires something no rule publishes and the initial world does not have;
+- a description is malformed (no name, an unknown `what` or unit, a field without a unit).
+
+It warns, and starts, when a rule reads something only a later rule of the rules file publishes
+(its first step will not have it) and when a field of categories has no event naming them.
+
+A rule that lists names in `writes` but no `publishes`, or any rule of a version 1 plugin, is
+not checked: the host says once which plugins those are, and counts their `writes` as published,
+in no known unit, so what they write is not reported missing.
 
 ## Change sets
 

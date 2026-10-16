@@ -79,6 +79,9 @@ func startSession(drawn *scene.Scene, rulesPath string) (*session, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, warning := range engine.Warnings {
+		fmt.Fprintln(os.Stderr, "warning:", warning)
+	}
 	running := &session{engine: engine, bridge: shown, keys: toggleKeysOf(engine)}
 	started, err := engine.Start()
 	if err == nil {

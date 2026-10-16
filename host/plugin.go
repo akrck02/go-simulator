@@ -81,8 +81,13 @@ func (plugin *Plugin) describe() error {
 	if err := plugin.receive(protocol.Description, &plugin.Description); err != nil {
 		return err
 	}
-	if plugin.Description.Protocol != protocol.Version {
-		return fmt.Errorf("plugin %q speaks protocol %d; the host speaks %d", plugin.Name, plugin.Description.Protocol, protocol.Version)
+	if speaks := plugin.Description.Protocol; speaks < protocol.OldestVersion || speaks > protocol.Version {
+		return fmt.Errorf("plugin %q speaks protocol %d; the host speaks %d to %d", plugin.Name, speaks, protocol.OldestVersion, protocol.Version)
+	}
+	for _, rule := range plugin.Description.Rules {
+		if err := rule.Check(); err != nil {
+			return fmt.Errorf("plugin %q: %w", plugin.Name, err)
+		}
 	}
 	return nil
 }
