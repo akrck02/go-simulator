@@ -15,7 +15,10 @@ type Engine struct {
 	Stages  []*Stage
 	Speed   float64 // multiplies the time of real-time stages (0 = 1)
 	Paused  bool    // real-time stages do not advance while paused
-	started bool
+	// Warnings are what the contracts of the plugins tell before the first step without being
+	// wrong (see contracts.go); whoever drives the engine shows them.
+	Warnings []string
+	started  bool
 	// lastEvents holds the last event of every name, for objectives that read them.
 	lastEvents map[string]world.Event
 }

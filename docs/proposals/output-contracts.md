@@ -1,6 +1,7 @@
 # Proposal: plugins describe what they publish
 
-Status: **proposal**, for discussion. Nothing here is built yet.
+Status: **step 1 built** (protocol 2, toolkit helpers, the host's checks; see `docs/protocol.md`). Unit
+mismatches are errors from the start. Steps 2 and 3 are next.
 
 ## The problem
 
@@ -138,8 +139,7 @@ accepting version 1.
 
 ## Open questions
 
-- Should a unit mismatch be an error from the start, or a warning for a while, until every plugin
-  describes its outputs?
+- ~~Should a unit mismatch be an error from the start?~~ Decided: yes, an error from the start.
 - Is `world` enough for shapes, or should a kind say that its lines and outlines are on the ground
   plane (x, z)?
 - Do events need versions (`biomes` with `names` today, maybe `colors` tomorrow), or are optional
