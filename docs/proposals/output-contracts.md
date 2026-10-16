@@ -11,7 +11,8 @@ two places that do not scale:
 - **`world/vocabulary.go`**, Go constants in the host's own module. The host does not need them
   (outside `world/`, it only uses the names of anchors, which it makes itself), but having them
   there suggests that a new simulator has to change go-simulator to add a name, and plugins in
-  other languages cannot use them at all.
+  other languages cannot use them at all. It also goes against the engine's own rule: no plugin's
+  vocabulary (cities, plants, rain…) in `world`, `host` or `protocol`.
 - **`Writes` in the `describe` message**, a list of names the host never reads. It mixes kinds
   and fields (`["elevation", "slope", "river"]`) without saying which is which, and it carries no
   units, so nothing can tell that one plugin writes `elevation` in metres and another reads it as
@@ -32,8 +33,10 @@ The names stay free text, as they are now: nothing has to be registered anywhere
 
 ## The protocol
 
-Two new optional members of `RuleDescription`. They are additive JSON: plugins that do not send
-them and hosts that do not read them keep working, so the protocol version stays 1.
+Two new optional members of `RuleDescription`. The JSON is additive (a plugin that does not send
+them still decodes), but a protocol change is a version change: the protocol goes to **version
+2**, `docs/protocol.md` describes the new members and every plugin moves with it. For the move,
+the host accepts plugins of version 1 and 2 and treats version 1 as "outputs not described".
 
 ```go
 type RuleDescription struct {
@@ -129,8 +132,9 @@ Expects: []protocol.InputDescription{plugin.NeedsField("elevation", "m")},
 3. `cmd/vocabulary` and the generated `rules.md` of every plugin; `world/vocabulary.go` keeps only
    the anchors.
 
-Each step works on its own: a host with step 1 runs plugins without step 2, and the other way
-round.
+Each step works on its own: a host with step 1 still runs plugins of version 1, and a plugin of
+version 2 still runs on such a host. Once every plugin is at version 2, the host can stop
+accepting version 1.
 
 ## Open questions
 
