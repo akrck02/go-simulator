@@ -15,6 +15,7 @@ const (
 	FieldElevation     = "elevation"     // height of the ground, metres
 	FieldWaterDepth    = "water_depth"   // depth of water over the ground, metres (0 = dry)
 	FieldSlope         = "slope"         // rise over run of the ground, no unit
+	FieldDrainageArea  = "drainage_area" // ground that drains through each cell, km² (0 on the sea)
 	FieldTemperature   = "temperature"   // mean yearly temperature, °C
 	FieldPrecipitation = "precipitation" // yearly rain and snow, mm
 	FieldBiome         = "biome"         // index into the names of the EventBiomes event, −1 for the sea
