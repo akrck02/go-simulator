@@ -24,6 +24,7 @@ plugin may want to read belongs here.
 |---|---|---|---|
 | `elevation` | height of the ground | m | terrain |
 | `slope` | steepness | rise over run | terrain |
+| `drainage_area` | ground that drains through each cell (0 on the sea) | km² | terrain (`erosion`) |
 | `water_depth` | water over the ground | m (0 = dry) | — |
 | `temperature` | mean yearly temperature | °C | climate |
 | `precipitation` | yearly rain and snow | mm | climate |
