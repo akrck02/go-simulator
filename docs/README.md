@@ -12,6 +12,7 @@ programs, in any language, that you can mix like building blocks.
 
 | | Page | What is in it |
 |---|---|---|
+| 🏴‍☠️ | [The quest](quest.md) | Bring a harbour to life in 6 levels: a rules file, a plugin of your own, entities, events, objectives, two plugins together. |
 | 🏛️ | [Architecture](architecture.md) | How it all fits together: the world, the seven changes, one step from start to end, interests, events, clocks and the packages. |
 | 📜 | [Rules files](rules-files.md) | Setting up a simulation: every key, with includes, anchors and objectives, and a rules file's life. |
 | ▶️ | [Running](running.md) | `simulate` and `simulator`, with or without a window, the files they write and the bridge. |
