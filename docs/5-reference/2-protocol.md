@@ -34,7 +34,7 @@ A conversation always follows the same order: the host asks who the plugin is, t
 to set up, gives it the world, and then asks it to step again and again until it says stop.
 
 <p align="center">
-  <img alt="Host and plugin: describe → description, attach → attached once per rule instance, start with the snapshot → changes, then step → changes again and again, and finally stop, after which the plugin exits" src="images/protocol.svg" width="880">
+  <img alt="Host and plugin: describe → description, attach → attached once per rule instance, start with the snapshot → changes, then step → changes again and again, and finally stop, after which the plugin exits" src="../images/protocol.svg" width="880">
 </p>
 
 | Host sends | Body | Plugin answers |

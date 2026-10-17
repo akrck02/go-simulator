@@ -107,7 +107,7 @@ func (rule *lighthouse) Step(context *plugin.Context) error {
 
 During development the renderer and the scene builder are used from the folders next to this one
 (`replace` in `go.mod`). Building the viewer needs GEOS (`pkg-config geos`) for the scene builder.
-[More on running →](docs/running.md)
+[More on running →](docs/4-guides/2-running.md)
 
 ## 🔍 How it works
 
@@ -120,17 +120,17 @@ the change protocol, the host engine, rules files and the renderer bridge; the p
 climate, flora, urban, motion…) live in their own repositories. Plugins never touch the renderer:
 they read the world and answer with **changes**; the host applies them, forwards them to the
 plugins that read that part of the world, and the bridge shows them in the scene.
-[More on the architecture →](docs/architecture.md)
+[More on the architecture →](docs/3-how-it-fits-together.md)
 
 ## 📚 Documentation
 
 | | |
 |---|---|
-| [The quest](docs/quest.md) | Bring a harbour to life in 6 levels, writing a plugin of your own. |
-| [Architecture](docs/architecture.md) | The world, the seven changes, one step from start to end, interests, events and clocks. |
-| [Rules files](docs/rules-files.md) | Every key, with includes, anchors and objectives. |
-| [Running](docs/running.md) | `simulate`, `simulator`, the files they write and the bridge. |
-| [Labels, header and notices](docs/overlay.md) | The words the live viewer writes over the scene. |
-| [Writing plugins](docs/writing-plugins.md) | The Go toolkit and other languages. |
-| [Vocabulary and conditions](docs/vocabulary.md) | Shared names, units and the condition language. |
-| [Protocol](docs/protocol.md) | Frames, messages and the JSON of every change. |
+| [The quest](docs/2-the-quest.md) | Bring a harbour to life in 6 levels, writing a plugin of your own. |
+| [Architecture](docs/3-how-it-fits-together.md) | The world, the seven changes, one step from start to end, interests, events and clocks. |
+| [Rules files](docs/4-guides/1-rules-files.md) | Every key, with includes, anchors and objectives. |
+| [Running](docs/4-guides/2-running.md) | `simulate`, `simulator`, the files they write and the bridge. |
+| [Labels, header and notices](docs/4-guides/3-labels-header-and-notices.md) | The words the live viewer writes over the scene. |
+| [Writing plugins](docs/4-guides/4-writing-plugins.md) | The Go toolkit and other languages. |
+| [Vocabulary and conditions](docs/5-reference/1-vocabulary-and-conditions.md) | Shared names, units and the condition language. |
+| [Protocol](docs/5-reference/2-protocol.md) | Frames, messages and the JSON of every change. |
