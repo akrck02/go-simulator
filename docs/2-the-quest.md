@@ -19,7 +19,7 @@ code**, a **checkpoint** to know it works, and an optional **bonus**.
 ## Before you start
 
 You need Go 1.25 and GEOS (`sudo apt install libgeos-dev`, `brew install geos`), and a scene. We use
-the village from [go-scene-builder's quest](https://github.com/akrck02/go-scene-builder/blob/master/docs/quest.md):
+the village from [go-scene-builder's quest](https://github.com/akrck02/go-scene-builder/blob/master/docs/2-the-quest.md):
 any `.glb` works, but the coordinates below fit that village (scene units are kilometres; the river
 runs east to west about 25 metres south of the centre).
 
@@ -113,7 +113,7 @@ it up.
 
 ![Achievement unlocked: Stage manager](images/quest/achievement-stage-manager.svg)
 
-Learn more: [Rules files](rules-files.md) · [Running](running.md)
+Learn more: [Rules files](4-guides/1-rules-files.md) · [Running](4-guides/2-running.md)
 
 ---
 
@@ -259,7 +259,7 @@ and `hour -= 12`; if `hour == 0`, `hour = 12`. Write `fmt.Sprintf("%d:%02d %s", 
 
 ![Achievement unlocked: Clockmaker](images/quest/achievement-clockmaker.svg)
 
-Learn more: [Writing plugins](writing-plugins.md)
+Learn more: [Writing plugins](4-guides/4-writing-plugins.md)
 
 ---
 
@@ -469,7 +469,7 @@ context.Emit("bell", map[string]any{"notice": "Eight bells", "icon": "bell"}) }`
 
 ![Achievement unlocked: Herald](images/quest/achievement-herald.svg)
 
-Learn more: [Labels, header and notices](overlay.md)
+Learn more: [Labels, header and notices](4-guides/3-labels-header-and-notices.md)
 
 ---
 
@@ -570,7 +570,7 @@ An objective at noon of the stage: `{name: four trips by noon, at: 4, event: qua
 
 ![Achievement unlocked: Harbour clerk](images/quest/achievement-harbour-clerk.svg)
 
-Learn more: [Objectives](rules-files.md#objectives) · [Architecture](architecture.md)
+Learn more: [Objectives](4-guides/1-rules-files.md#objectives) · [Architecture](3-how-it-fits-together.md)
 
 ---
 
@@ -638,7 +638,7 @@ world.
 
 ![Achievement unlocked: Conductor](images/quest/achievement-conductor.svg)
 
-Learn more: [Architecture: interests](architecture.md)
+Learn more: [Architecture: interests](3-how-it-fits-together.md)
 
 ---
 
@@ -694,7 +694,7 @@ and played it beside another plugin.
 | Idea | Difficulty | Hint |
 |---|---|---|
 | Passengers on the badge | ⭐ | A number that goes up at each landing, in the ferry's properties |
-| A plugin in another language | ⭐⭐ | JSON frames over standard input and output: [protocol](protocol.md) |
+| A plugin in another language | ⭐⭐ | JSON frames over standard input and output: [protocol](5-reference/2-protocol.md) |
 | A field: the river's depth as a grid | ⭐⭐ | `context.SetField`, then `snapshot_fields` writes it to files |
 | A town that grows round the harbour | ⭐⭐⭐ | The [urban plugin](https://github.com/akrck02/go-simulator-urban) and a `scene_style` |
 
@@ -711,4 +711,4 @@ and played it beside another plugin.
 
 ---
 
-[← All the documentation](README.md)
+[← All the documentation](1-overview.md)

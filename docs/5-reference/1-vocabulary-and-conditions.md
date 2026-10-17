@@ -45,7 +45,7 @@ plugin may want to read belongs here.
 **Overlay properties**
 
 Any entity can carry a few words for whoever watches the run. The live viewer
-([labels, header and notices](overlay.md)) draws them over the 3D scene; models should not read
+([labels, header and notices](../4-guides/3-labels-header-and-notices.md)) draws them over the 3D scene; models should not read
 them. All are optional, and setting one to `null` takes it away.
 
 | Name | Value | Shown as |
