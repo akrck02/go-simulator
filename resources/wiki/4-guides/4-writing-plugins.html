@@ -6,7 +6,7 @@ takes care of everything else (starting your program, sending it the world, forw
 saving results).</p>
 
 <p>In Go, the <code>plugin</code> package does all the talking for you, and a useful plugin fits in a page. In
-any other language, the <a href="./protocol">protocol</a> is plain JSON over standard input and output.</p>
+any other language, the <a href="./5-reference/2-protocol">protocol</a> is plain JSON over standard input and output.</p>
 
 <p>Here is the whole journey, using a lighthouse whose beam turns.</p>
 
@@ -56,7 +56,7 @@ in a rules file:</p>
 <p>Declare every parameter, what the rule reads and what it writes: the host sends the plugin only
 what its rules read, and tools build references from the description.</p>
 
-<p><code>Publishes</code> and <code>Expects</code> are the rule&rsquo;s <a href="./protocol">contracts</a>: what it publishes and
+<p><code>Publishes</code> and <code>Expects</code> are the rule&rsquo;s <a href="./5-reference/2-protocol">contracts</a>: what it publishes and
 what it needs, with units. The host compares them before the first step and refuses to start when
 two plugins disagree, so a wrong unit shows at once instead of as a strange result. The <code>plugin</code>
 package has one-line helpers: <code>plugin.Field(&quot;elevation&quot;, &quot;m&quot;, &quot;height of the ground&quot;)</code>,
@@ -164,7 +164,7 @@ change set, and exit on <code>stop</code>.</li>
 <li>Read and write field values as float32 attachments, one per <code>set_field</code>, in order.</li>
 </ol>
 
-<p>See <a href="./protocol">protocol</a> for the JSON of every message and change.</p>
+<p>See <a href="./5-reference/2-protocol">protocol</a> for the JSON of every message and change.</p>
 
 <h2 id="good-plugins">Good plugins</h2>
 
@@ -173,7 +173,7 @@ change set, and exit on <code>stop</code>.</li>
 <ul>
 <li>Know nothing about any particular world. Everything concrete comes from parameters, anchors and
 fields; use made-up examples in comments, tests and documentation.</li>
-<li>Read other plugins&rsquo; results from the world by the names of the <a href="./vocabulary">vocabulary</a>,
+<li>Read other plugins&rsquo; results from the world by the names of the <a href="./5-reference/1-vocabulary-and-conditions">vocabulary</a>,
 never from their files.</li>
 <li>Publish data, not looks: kinds and properties in physical units; colours and models belong to
 scene styles.</li>
