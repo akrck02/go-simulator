@@ -54,15 +54,15 @@ option (`-walk`, `-night`, `-look-at`, `-capture`, `-benchmark`…; see
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/hero-dark.png">
-  <img alt="The live viewer: a made-up island with labelled boats, and a header with a clock, counters and notices" src="images/hero-light.png" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/hero-dark.png">
+  <img alt="The live viewer: a made-up island with labelled boats, and a header with a clock, counters and notices" src="../images/hero-light.png" width="720">
 </picture>
 </p>
 
 Besides the scene, the viewer writes a few words over it, from the
-[overlay properties](vocabulary.md#shared-names) of the entities: **labels** above them, a
+[overlay properties](../5-reference/1-vocabulary-and-conditions.md#shared-names) of the entities: **labels** above them, a
 **header** in the top-left corner and **notices** under it. Captures (`-capture`) include them.
-See [labels, header and notices](overlay.md).
+See [labels, header and notices](3-labels-header-and-notices.md).
 
 ### The bridge
 
@@ -78,9 +78,9 @@ scene changes:
   and the instances standing there, sparing the holes;
 - the environment moves the sun, wind, clouds, tide, snow line and foliage tint;
 - the overlay properties become labels and header lines, and events with a `notice` become
-  notices (see [labels, header and notices](overlay.md)).
+  notices (see [labels, header and notices](3-labels-header-and-notices.md)).
 
 ## Known limits
 
 What the bridge does not do yet is listed in the documentation index, under
-[not done yet](README.md#-not-done-yet).
+[not done yet](../1-overview.md#-not-done-yet).

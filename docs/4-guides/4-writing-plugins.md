@@ -6,7 +6,7 @@ takes care of everything else (starting your program, sending it the world, forw
 saving results).
 
 In Go, the `plugin` package does all the talking for you, and a useful plugin fits in a page. In
-any other language, the [protocol](protocol.md) is plain JSON over standard input and output.
+any other language, the [protocol](../5-reference/2-protocol.md) is plain JSON over standard input and output.
 
 Here is the whole journey, using a lighthouse whose beam turns.
 
@@ -60,7 +60,7 @@ turn := plugin.Definition{
 Declare every parameter, what the rule reads and what it writes: the host sends the plugin only
 what its rules read, and tools build references from the description.
 
-`Publishes` and `Expects` are the rule's [contracts](protocol.md#contracts): what it publishes and
+`Publishes` and `Expects` are the rule's [contracts](../5-reference/2-protocol.md#contracts): what it publishes and
 what it needs, with units. The host compares them before the first step and refuses to start when
 two plugins disagree, so a wrong unit shows at once instead of as a strange result. The `plugin`
 package has one-line helpers: `plugin.Field("elevation", "m", "height of the ground")`,
@@ -135,7 +135,7 @@ A plugin must:
 3. Keep its own copy of the world: apply the start snapshot and every step's `incoming` changes.
 4. Read and write field values as float32 attachments, one per `set_field`, in order.
 
-See [protocol](protocol.md) for the JSON of every message and change.
+See [protocol](../5-reference/2-protocol.md) for the JSON of every message and change.
 
 ## Good plugins
 
@@ -143,7 +143,7 @@ A few habits keep plugins easy to combine:
 
 - Know nothing about any particular world. Everything concrete comes from parameters, anchors and
   fields; use made-up examples in comments, tests and documentation.
-- Read other plugins' results from the world by the names of the [vocabulary](vocabulary.md),
+- Read other plugins' results from the world by the names of the [vocabulary](../5-reference/1-vocabulary-and-conditions.md),
   never from their files.
 - Publish data, not looks: kinds and properties in physical units; colours and models belong to
   scene styles.

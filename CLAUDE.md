@@ -3,7 +3,7 @@
 A plugin-based simulation engine: a neutral world (entities, fields, environment), a host that
 runs plugins (separate programs, any language) on clocks and stages from a rules file, a binary
 protocol, and two programs: `cmd/simulate` (headless, writes results and objectives) and
-`cmd/simulator` (live, in go-renderer's viewer). Start with `docs/architecture.md`.
+`cmd/simulator` (live, in go-renderer's viewer). Start with `docs/3-how-it-fits-together.md`.
 
 ## Commands
 
@@ -40,4 +40,4 @@ Sibling checkouts are required: `go.mod` replaces the akrck02 modules with `../g
 
 - The engine stays neutral: no plugin's vocabulary (cities, plants, rain…) in `world`, `host` or
   `protocol`. Plugins reach the world only through the seven changes.
-- A protocol change is a version change: update `docs/protocol.md` and every plugin with it.
+- A protocol change is a version change: update `docs/5-reference/2-protocol.md` and every plugin with it.
