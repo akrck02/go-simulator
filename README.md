@@ -1,5 +1,7 @@
 <div align="center">
 
+<img alt="" src="docs/images/logo.svg" width="120">
+
 # Go simulator
 
 **Simulations for [go-renderer](https://github.com/akrck02/go-renderer) scenes, built from plugins.**
