@@ -1,0 +1,295 @@
+<h1 id="how-it-fits-together">🏛️ How it fits together</h1>
+
+<h2 id="a-theatre-with-stagehands">A theatre with stagehands</h2>
+
+<p>Picture a theatre. The <strong>stage</strong> shows whatever is on it and does not care what the play is about:
+that is <a href="https://github.com/akrck02/go-renderer" target="_blank">go-renderer</a>. The <strong>stagehand</strong> moves things between scenes: that is
+go-simulator, the host. And the <strong>script</strong> for each kind of change lives with specialists,
+the <strong>plugins</strong>: one knows how rain falls, another how forests grow, another how towns spread.</p>
+
+<p align="center">
+  <img alt="A rules file → the go-simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="images/architecture.svg" width="880">
+</p>
+
+<p>A plugin never draws anything and never talks to another plugin. It reads the part of the world it
+cares about and answers with <strong>changes</strong>. That one rule is what makes the whole thing work: plugins
+can be written separately, in any language, and combined freely.</p>
+
+<h2 id="what-the-world-is-made-of">What the world is made of</h2>
+
+<p>The world is plain data, with nothing about how it looks on screen. It holds three kinds of things,
+on a ground plane where x points east, z points south and y points up:</p>
+
+<ul>
+<li><strong>Entities</strong> are things that exist: a house, a street, a boat, a plot of land. Each has an id that
+never changes, a kind (<code>building</code>, <code>street</code>…), maybe a parent it moves with, a position, a shape
+and free properties such as <code>floors: 2</code> or <code>use: shop</code>.</li>
+<li><strong>Fields</strong> are grids of numbers laid over the ground: the height of the land, the temperature,
+what grows where. They travel as raw numbers, so a million cells is cheap.</li>
+<li><strong>The environment</strong> is what surrounds everything: where the sun is, the wind, the clouds, the
+tide, how low the snow comes, the colour of the leaves.</li>
+</ul>
+
+<p>An entity&rsquo;s <strong>shape</strong> decides how it will be drawn:</p>
+
+<table>
+<thead>
+<tr>
+<th>Shape</th>
+<th>Looks like</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>mesh</code></td>
+<td>something the scene already has, by name</td>
+</tr>
+
+<tr>
+<td><code>primitive: box</code></td>
+<td>a box</td>
+</tr>
+
+<tr>
+<td><code>outline</code></td>
+<td>a flat patch of ground (a plot), or with a <code>height</code>, a building</td>
+</tr>
+
+<tr>
+<td><code>line</code> + <code>width</code></td>
+<td>a strip on the ground (a street), or with a <code>height</code>, a wall</td>
+</tr>
+</tbody>
+</table>
+<p>Outlines and lines hug the terrain. Shapes that share a <code>batch</code> are drawn as a single mesh, which is
+why a town of thousands of houses costs only a handful of draw calls.</p>
+
+<h2 id="seven-ways-to-change-the-world">Seven ways to change the world</h2>
+
+<p>The world never changes behind anyone&rsquo;s back: every change is one of seven kinds. Because changes
+are just data, they can be saved, forwarded to other plugins and replayed later.</p>
+
+<table>
+<thead>
+<tr>
+<th>Change</th>
+<th>What it means</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>add</code></td>
+<td>Something new appears</td>
+</tr>
+
+<tr>
+<td><code>remove</code></td>
+<td>Something goes away, with everything attached to it</td>
+</tr>
+
+<tr>
+<td><code>modify</code></td>
+<td>Something changes; properties are merged, and setting one to null removes it</td>
+</tr>
+
+<tr>
+<td><code>set_field</code></td>
+<td>A grid is created, or some of its cells change</td>
+</tr>
+
+<tr>
+<td><code>set_environment</code></td>
+<td>The sun, wind, tide… change</td>
+</tr>
+
+<tr>
+<td><code>emit</code></td>
+<td>&ldquo;Something happened worth telling&rdquo; (an event); the world itself does not change</td>
+</tr>
+
+<tr>
+<td><code>clear_area</code></td>
+<td>The simulation takes over part of the drawn scene and clears it (a forest where a town grows)</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="one-step-from-start-to-finish">One step, from start to finish</h2>
+
+<p>Here is what happens in one year of a simulation with a climate plugin and a flora plugin:</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant H as Host
+    participant C as Climate plugin
+    participant F as Flora plugin
+    participant W as World
+    participant S as Screen
+    Note over H: the clock moves on one year
+    H-&gt;&gt;C: step (the rules due now)
+    C--&gt;&gt;H: changes
+    H-&gt;&gt;W: apply them, one by one
+    Note over H: keep for Flora the changes it reads
+    H-&gt;&gt;F: step + the changes it missed
+    F--&gt;&gt;H: changes
+    H-&gt;&gt;W: apply them
+    W-&gt;&gt;S: the bridge draws the new state
+</code></pre>
+
+<ol>
+<li>The stage&rsquo;s clock moves forward: one step, or the seconds that passed on screen.</li>
+<li>The host gathers the rules that are due, in the order the rules file lists them. Rules of the
+same plugin that come one after another travel together in one request.</li>
+<li>The plugin runs them on its own copy of the world. Each rule already sees what the previous one
+changed. It answers with all the changes.</li>
+<li>The host applies them to the world, in order.</li>
+<li>For each change, it notes which other plugins care about it, and keeps it for them.</li>
+<li>When it is the next plugin&rsquo;s turn, those changes travel with its request, so its copy of the
+world is up to date before its rules run.</li>
+<li>With a window, the bridge turns the changes into scene updates and the renderer draws them.
+Without one, the host saves snapshots at the times you asked for.</li>
+</ol>
+
+<p><strong>Starting</strong> works the same way. Each plugin receives a snapshot of the part of the world it reads,
+plus the latest event of each name it listens to. Plugins start in the order of the rules file, so
+the ones further down already find what the earlier ones published: the climate&rsquo;s fields, and the
+event that names its biomes, are there before the flora takes its first step.</p>
+
+<h2 id="who-hears-about-what">Who hears about what</h2>
+
+<p>Every rule says what it <strong>reads</strong> (its interest) and what it <strong>writes</strong>. The host only sends each
+plugin what it asked for: the climate never hears about houses, and the town never hears about the
+temperature unless it asks.</p>
+<pre><code class="language-yaml"><span class="nt">reads</span><span class="p">:</span> {<span class="nt">kinds</span><span class="p">:</span> <span class="nt">[building, street], properties</span><span class="p">:</span> <span class="nt">[anchor], fields</span><span class="p">:</span> <span class="nt">[elevation], environment</span><span class="p">:</span> <span class="nt">true, events</span><span class="p">:</span> <span class="p">[</span><span class="l">biomes]}</span>
+</code></pre>
+
+<p>An entity is included when its kind is listed or it has one of the listed properties.
+<code>everything: true</code> reads it all, and <code>events: [&quot;*&quot;]</code> listens to every event.</p>
+
+<h2 id="events">Events</h2>
+
+<p>Some things are news, not state. The climate wants to say &ldquo;value 3 of my biome field means
+<em>forest</em>&rdquo;; the town wants to say &ldquo;this year I have 3,100 people&rdquo;. That is what <code>emit</code> is for. Events
+reach the plugins that listen to their name (in <code>context.Events</code>), they are saved to a log, and
+objectives can check them.</p>
+
+<h2 id="clocks">Clocks</h2>
+
+<p>Rules live in <strong>stages</strong>, and each stage has its own clock. All stages share one world, so the
+clouds can drift in real time while a town grows a year at a time.</p>
+
+<ul>
+<li><strong>Real time</strong> moves with the seconds on screen, faster or slower as you like.</li>
+<li><strong>Stepped</strong> moves one step at a time, from <code>from</code> to <code>to</code>: as fast as possible without a window,
+or one step every <code>pace</code> seconds while you watch.</li>
+</ul>
+
+<p>A rule can run at every step, every so often (<code>every: 5</code>) or just once (<code>at: 10</code>), and can be
+switched on and off with a key.</p>
+<pre><code>step          1   2   3   4   5   6   7   8   9   10
+every step    ●   ●   ●   ●   ●   ●   ●   ●   ●   ●
+every: 5      ●                   ●
+at: 3                 ●
+</code></pre>
+
+<h2 id="generic-simulators-concrete-results">Generic simulators, concrete results</h2>
+
+<p>None of the simulators knows the world it runs in. Everything specific comes in as data, kept in
+three layers:</p>
+
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Holds</th>
+<th>Example</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><strong>Scenario</strong></td>
+<td>the numbers and places of one world, and what must come out</td>
+<td>the population curve, where the gate is</td>
+</tr>
+
+<tr>
+<td><strong>Vocabulary</strong></td>
+<td>the names plugins share, with their units</td>
+<td><code>elevation</code> in metres, kind <code>building</code></td>
+</tr>
+
+<tr>
+<td><strong>Mechanism</strong></td>
+<td>each simulator&rsquo;s code</td>
+<td>published models of climate, forest succession, town growth</td>
+</tr>
+</tbody>
+</table>
+<p>Two tools tie a generic simulator to a concrete result. <strong>Anchors</strong> fix places the story says are
+there, and the plugins build around them. <strong>Objectives</strong> state what the run must reach (&ldquo;walled by
+year 60&rdquo;, &ldquo;about 6,000 people at the end&rdquo;); a run that misses one fails and says which. With a fixed
+seed, a run that meets its objectives gives the same result every time.</p>
+
+<h2 id="the-packages">The packages</h2>
+
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Role</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>world</code></td>
+<td>The world, the changes, interests and the shared vocabulary</td>
+</tr>
+
+<tr>
+<td><code>protocol</code></td>
+<td>The messages between host and plugins</td>
+</tr>
+
+<tr>
+<td><code>plugin</code></td>
+<td>The toolkit for writing plugins in Go</td>
+</tr>
+
+<tr>
+<td><code>host</code></td>
+<td>Starts plugins, adds anchors, runs the stages and checks objectives</td>
+</tr>
+
+<tr>
+<td><code>configuration</code></td>
+<td>Reads and checks rules files</td>
+</tr>
+
+<tr>
+<td><code>conditions</code></td>
+<td>The little &ldquo;when does this apply&rdquo; language</td>
+</tr>
+
+<tr>
+<td><code>spatial</code></td>
+<td>Small 3D maths for plugins, without the renderer</td>
+</tr>
+
+<tr>
+<td><code>snapshot</code></td>
+<td>Saves the world to files (GeoJSON, grids) and reads GeoJSON</td>
+</tr>
+
+<tr>
+<td><code>bridge</code></td>
+<td>Builds the world from a scene and draws every change</td>
+</tr>
+
+<tr>
+<td><code>scenebuilder</code></td>
+<td>Lets the bridge draw with go-scene-builder&rsquo;s style rules</td>
+</tr>
+</tbody>
+</table>

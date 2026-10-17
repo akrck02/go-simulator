@@ -1,0 +1,829 @@
+<h1 id="the-go-simulator-quest">The go-simulator quest</h1>
+
+<p>Bring a scene to life, one level at a time. Each level teaches one piece of go-simulator and ends
+with something new happening in the scene.</p>
+
+<p><img src="./images/quest/quest-map.svg" alt="The quest map: a road from START through 6 levels — Stage manager, Clockmaker, Shipwright, Herald, Harbour clerk and Conductor — to a final challenge, Fleet owner" /></p>
+
+<p>We will make a <strong>harbour that lives</strong>: the weather moving over a village, a clock in the corner of
+the screen, a ferry sailing up and down the river, notices when it lands, a clerk counting its
+trips, and in the end a whole fleet. You write a <strong>plugin</strong> of your own, in Go.</p>
+
+<hr>
+
+<p>Every level has the same shape: <strong>the idea</strong> (explained with something from everyday life), <strong>the
+code</strong>, a <strong>checkpoint</strong> to know it works, and an optional <strong>bonus</strong>.</p>
+
+<hr>
+
+<h2 id="before-you-start">Before you start</h2>
+
+<p>You need Go 1.25 and GEOS (<code>sudo apt install libgeos-dev</code>, <code>brew install geos</code>), and a scene. We use
+the village from <a href="https://github.com/akrck02/go-scene-builder/blob/master/docs/quest.md" target="_blank">go-scene-builder&rsquo;s quest</a>:
+any <code>.glb</code> works, but the coordinates below fit that village (scene units are kilometres; the river
+runs east to west about 25 metres south of the centre).</p>
+
+<p>Clone the projects side by side:</p>
+<pre><code class="language-sh">git clone https://github.com/akrck02/go-renderer
+git clone https://github.com/akrck02/go-scene-builder
+git clone https://github.com/akrck02/go-simulator
+git clone https://github.com/akrck02/go-simulator-motion
+mkdir quest <span class="o">&amp;&amp;</span> <span class="nb">cd</span> quest
+cp ../village/village.glb .      <span class="c1"># or any scene</span>
+</code></pre>
+
+<p>Two commands, which you will use all along:</p>
+<pre><code class="language-sh"><span class="c1"># live: the scene in the viewer, with the simulation running</span>
+go run ../go-simulator/cmd/simulator -rules rules.yaml village.glb
+<span class="c1"># without a window: as fast as it can, to files</span>
+go run ../go-simulator/cmd/simulate -rules rules.yaml -scene village.glb -output results/
+</code></pre>
+
+<p>The pictures were taken with <code>-advance 42 -look-at 0,0.025 -zoom 0.5 -capture shot.png</code>.</p>
+
+<p>This is where everything will live by the end:</p>
+<pre><code>quest/
+├── village.glb
+├── rules.yaml          ← every level
+└── harbour/            ← your plugin, from level 2
+    ├── go.mod
+    ├── main.go
+    ├── clock.go        ← level 2
+    ├── ferry.go        ← level 3
+    └── quay.go         ← level 5
+</code></pre>
+
+<hr>
+
+<h2 id="level-1-the-stage-manager">Level 1 · The Stage manager</h2>
+
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Pieces</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Wind, clouds and the day passing over the village</td>
+<td>a rules file, a plugin, a real-time stage</td>
+<td>5 min</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="the-idea">The idea</h4>
+
+<p>A theatre&rsquo;s <strong>stage manager</strong> does not act: they follow a <strong>script</strong> that says who comes on, when,
+and what they do. go-simulator is the stage manager, the <strong>rules file</strong> is the script, and the
+<strong>plugins</strong> are the actors: separate programs, each knowing how to do a few things (<em>rules</em>).</p>
+
+<p>The motion plugin knows how to turn the sun, blow the wind and drift the clouds.</p>
+
+<h4 id="build-it">Build it</h4>
+
+<p><code>rules.yaml</code>:</p>
+<pre><code class="language-yaml"><span class="nt">plugins</span><span class="p">:</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">motion</span>
+    <span class="nt">command</span><span class="p">:</span> <span class="p">[</span><span class="l">go, run, .]</span>
+    <span class="nt">directory</span><span class="p">:</span> <span class="l">../go-simulator-motion</span>
+
+<span class="nt">stages</span><span class="p">:</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">weather</span>
+    <span class="nt">clock</span><span class="p">:</span> <span class="l">realtime</span>
+    <span class="nt">rules</span><span class="p">:</span>
+      - {<span class="nt">rule</span><span class="p">:</span> <span class="nt">day_cycle, with</span><span class="p">:</span> {<span class="nt">seconds_per_day</span><span class="p">:</span> <span class="nt">120}, toggle_key</span><span class="p">:</span> <span class="l">T}</span>
+      - {<span class="nt">rule</span><span class="p">:</span> <span class="nt">gusts, with</span><span class="p">:</span> {<span class="nt">variation</span><span class="p">:</span> <span class="m">0.5</span>}}
+      - <span class="nt">rule</span><span class="p">:</span> <span class="l">cloud_drift</span>
+</code></pre>
+
+<p>A <strong>stage</strong> is a group of rules that share a clock; <code>realtime</code> follows the seconds you watch.</p>
+
+<h4 id="checkpoint">Checkpoint</h4>
+
+<p>Run it live. The trees sway in gusts, and the sun crosses the sky in two minutes: shadows turn, and
+night falls. <strong>T</strong> stops and starts the day; <strong>P</strong> pauses; <strong>,</strong> and <strong>.</strong> slow time down or speed
+it up.</p>
+
+<h4 id="bonus-optional-faster-days">Bonus (optional): faster days</h4>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+`seconds_per_day: 30`, or press **.** twice in the viewer.
+
+</details>
+
+<p><img src="./images/quest/achievement-stage-manager.svg" alt="Achievement unlocked: Stage manager" /></p>
+
+<p>Learn more: <a href="./rules-files">Rules files</a> · <a href="./running">Running</a></p>
+
+<hr>
+
+<h2 id="level-2-the-clockmaker">Level 2 · The Clockmaker</h2>
+
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Pieces</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>A plugin of your own, with a clock in the corner</td>
+<td><code>plugin.Plugin</code>, a rule, <code>Start</code>, <code>Step</code>, a stepped clock</td>
+<td>10 min</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="the-idea-1">The idea</h4>
+
+<p>A plugin is an <strong>actor</strong> with a few tricks (its rules). The stage manager calls it on stage at
+every step and asks: <em>what changes now?</em> The actor never touches the scenery itself: it answers
+with <strong>changes</strong> (&ldquo;this thing moved&rdquo;, &ldquo;that label now says 08:30&rdquo;), and the host applies them.</p>
+
+<p>Anything in the world is an <strong>entity</strong>: an id, a kind and free properties. An entity with the
+property <code>pinned</code> is shown in the header in the corner, so a clock needs no shape at all.</p>
+
+<h4 id="build-it-1">Build it</h4>
+
+<p>A module for the plugin, <code>harbour/go.mod</code>:</p>
+<pre><code>module example.com/harbour
+
+go 1.25.6
+
+require github.com/akrck02/go-simulator v0.0.0
+
+replace (
+	github.com/akrck02/go-simulator =&gt; ../../go-simulator
+	github.com/akrck02/go-renderer =&gt; ../../go-renderer
+	github.com/akrck02/go-scene-builder =&gt; ../../go-scene-builder
+)
+</code></pre>
+
+<p><code>harbour/clock.go</code>, the rule:</p>
+<pre><code class="language-go"><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+	<span class="s">&#34;fmt&#34;</span>
+	<span class="s">&#34;math&#34;</span>
+
+	<span class="s">&#34;github.com/akrck02/go-simulator/plugin&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/protocol&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/world&#34;</span>
+<span class="p">)</span>
+
+<span class="c1">// clock writes the time of day in the header&#39;s first line. The stage&#39;s clock counts hours.</span>
+<span class="kd">type</span> <span class="nx">clock</span> <span class="kd">struct</span><span class="p">{</span> <span class="nx">start</span> <span class="kt">float64</span> <span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">clockRule</span> <span class="p">=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Definition</span><span class="p">{</span>
+	<span class="nx">Description</span><span class="p">:</span> <span class="nx">protocol</span><span class="p">.</span><span class="nx">RuleDescription</span><span class="p">{</span>
+		<span class="nx">Name</span><span class="p">:</span>       <span class="s">&#34;clock&#34;</span><span class="p">,</span>
+		<span class="nx">Summary</span><span class="p">:</span>    <span class="s">&#34;Shows the time of day in the header.&#34;</span><span class="p">,</span>
+		<span class="nx">Parameters</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">ParameterDescription</span><span class="p">{{</span><span class="nx">Name</span><span class="p">:</span> <span class="s">&#34;start&#34;</span><span class="p">,</span> <span class="nx">Type</span><span class="p">:</span> <span class="s">&#34;number&#34;</span><span class="p">,</span> <span class="nx">Default</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="nx">Summary</span><span class="p">:</span> <span class="s">&#34;hour the day starts at&#34;</span><span class="p">}},</span>
+		<span class="nx">Writes</span><span class="p">:</span>     <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;clock&#34;</span><span class="p">},</span>
+		<span class="nx">Publishes</span><span class="p">:</span>  <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">OutputDescription</span><span class="p">{</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">Kind</span><span class="p">(</span><span class="s">&#34;clock&#34;</span><span class="p">,</span> <span class="s">&#34;the harbour&#39;s clock, pinned to the header&#34;</span><span class="p">)},</span>
+	<span class="p">},</span>
+	<span class="nx">New</span><span class="p">:</span> <span class="kd">func</span><span class="p">(</span><span class="nx">parameters</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Parameters</span><span class="p">)</span> <span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Rule</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="o">&amp;</span><span class="nx">clock</span><span class="p">{</span><span class="nx">start</span><span class="p">:</span> <span class="nx">parameters</span><span class="p">.</span><span class="nf">Number</span><span class="p">(</span><span class="s">&#34;start&#34;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)},</span> <span class="kc">nil</span>
+	<span class="p">},</span>
+<span class="p">}</span>
+
+<span class="c1">// Start adds the clock once: an entity with no shape, pinned first in the header.</span>
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">clock</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;harbour-clock&#34;</span><span class="p">,</span> <span class="nx">Kind</span><span class="p">:</span> <span class="s">&#34;clock&#34;</span><span class="p">,</span>
+		<span class="nx">Properties</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;label&#34;</span><span class="p">:</span> <span class="nx">rule</span><span class="p">.</span><span class="nf">time</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Time</span><span class="p">),</span> <span class="s">&#34;icon&#34;</span><span class="p">:</span> <span class="s">&#34;clock&#34;</span><span class="p">,</span> <span class="s">&#34;pinned&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// Step writes the new time on it.</span>
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">clock</span><span class="p">)</span> <span class="nf">Step</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Modify</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;harbour-clock&#34;</span><span class="p">,</span> <span class="nx">Properties</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;label&#34;</span><span class="p">:</span> <span class="nx">rule</span><span class="p">.</span><span class="nf">time</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Time</span><span class="p">)}})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// time turns the stage&#39;s hours into &#34;08:30&#34;.</span>
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">clock</span><span class="p">)</span> <span class="nf">time</span><span class="p">(</span><span class="nx">hours</span> <span class="kt">float64</span><span class="p">)</span> <span class="kt">string</span> <span class="p">{</span>
+	<span class="nx">total</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Mod</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">start</span><span class="o">+</span><span class="nx">hours</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;%02d:%02d&#34;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nx">total</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="nx">math</span><span class="p">.</span><span class="nf">Mod</span><span class="p">(</span><span class="nx">total</span><span class="o">*</span><span class="mi">60</span><span class="p">,</span> <span class="mi">60</span><span class="p">)))</span>
+<span class="p">}</span>
+</code></pre>
+
+<p><code>harbour/main.go</code>, the plugin (for now, <code>Rules: []plugin.Definition{clockRule}</code>):</p>
+<pre><code class="language-go"><span class="c1">// Command harbour is a simulator plugin: a clock in the corner, a ferry that crosses the river and</span>
+<span class="c1">// a quay that counts its arrivals.</span>
+<span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+	<span class="s">&#34;log&#34;</span>
+
+	<span class="s">&#34;github.com/akrck02/go-simulator/plugin&#34;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="nx">log</span><span class="p">.</span><span class="nf">SetFlags</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1">// logs go to standard error: standard output carries the protocol</span>
+	<span class="nx">harbour</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Plugin</span><span class="p">{</span><span class="nx">Name</span><span class="p">:</span> <span class="s">&#34;harbour&#34;</span><span class="p">,</span> <span class="nx">Version</span><span class="p">:</span> <span class="s">&#34;0.1.0&#34;</span><span class="p">,</span> <span class="nx">Rules</span><span class="p">:</span> <span class="p">[]</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Definition</span><span class="p">{</span><span class="nx">clockRule</span><span class="p">,</span> <span class="nx">ferryRule</span><span class="p">,</span> <span class="nx">quayRule</span><span class="p">}}</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">harbour</span><span class="p">.</span><span class="nf">Serve</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>The rules file gets a second plugin and a <strong>stepped</strong> stage, whose clock counts hours, one step of
+three minutes every tenth of a real second:</p>
+<pre><code class="language-yaml"><span class="nt">plugins</span><span class="p">:</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">harbour</span>
+    <span class="nt">command</span><span class="p">:</span> <span class="p">[</span><span class="l">go, run, .]</span>
+    <span class="nt">directory</span><span class="p">:</span> <span class="l">harbour</span>
+
+<span class="nt">stages</span><span class="p">:</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">day</span>
+    <span class="nt">clock</span><span class="p">:</span> {<span class="nt">unit</span><span class="p">:</span> <span class="nt">hour, from</span><span class="p">:</span> <span class="nt">0, to</span><span class="p">:</span> <span class="nt">12, step</span><span class="p">:</span> <span class="nt">0.05, pace</span><span class="p">:</span> <span class="m">0.1</span>}
+    <span class="nt">rules</span><span class="p">:</span>
+      - {<span class="nt">rule</span><span class="p">:</span> <span class="nt">clock, with</span><span class="p">:</span> {<span class="nt">start</span><span class="p">:</span> <span class="m">8</span>}}
+</code></pre>
+
+<p>(Keep the weather stage too, if you like: both run together.) Then, once: <code>cd harbour &amp;&amp; go mod tidy &amp;&amp; cd ..</code>.</p>
+
+<h4 id="checkpoint-1">Checkpoint</h4>
+
+<p>Live, a card in the top-left corner shows the time, from 08:00 on, three minutes every tenth of a
+second. Without a window, <code>simulate</code> prints every step, <code>day 0.05 … day 12</code>, and ends.</p>
+
+<p><img src="./images/quest/level-2.jpg" alt="Level 2: a clock reading 10:06 in the corner, over the village" /></p>
+
+<h4 id="bonus-optional-a-m-and-p-m">Bonus (optional): a.m. and p.m.</h4>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+In `time`, compute `hour := int(total)`, then `suffix := "am"`; if `hour >= 12`, `suffix = "pm"`
+and `hour -= 12`; if `hour == 0`, `hour = 12`. Write `fmt.Sprintf("%d:%02d %s", hour, minutes, suffix)`.
+
+</details>
+
+<p><img src="./images/quest/achievement-clockmaker.svg" alt="Achievement unlocked: Clockmaker" /></p>
+
+<p>Learn more: <a href="./writing-plugins">Writing plugins</a></p>
+
+<hr>
+
+<h2 id="level-3-the-shipwright">Level 3 · The Shipwright</h2>
+
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Pieces</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>A ferry that sails up and down the river</td>
+<td>an entity with a shape, its transform, parameters</td>
+<td>12 min</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="the-idea-2">The idea</h4>
+
+<p>A <strong>shipwright</strong> builds the boat once, then it sails. In <code>Start</code> the rule <strong>adds</strong> an entity with a
+shape (a red box, standing in for a boat); at every <code>Step</code> it <strong>modifies</strong> only what changed: its
+place (<code>Transform</code>) and its badge. The rest stays as it was.</p>
+
+<p>Where it sails comes from the rules file, as <strong>parameters</strong>: the same rule can sail any river.</p>
+
+<h4 id="build-it-2">Build it</h4>
+
+<p><code>harbour/ferry.go</code>:</p>
+<pre><code class="language-go"><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+	<span class="s">&#34;fmt&#34;</span>
+	<span class="s">&#34;math&#34;</span>
+
+	<span class="s">&#34;github.com/akrck02/go-simulator/plugin&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/protocol&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/spatial&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/world&#34;</span>
+<span class="p">)</span>
+
+<span class="c1">// ferry crosses back and forth along a route, and says when it arrives at either end.</span>
+<span class="kd">type</span> <span class="nx">ferry</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">route</span>    <span class="p">[][</span><span class="mi">2</span><span class="p">]</span><span class="kt">float64</span> <span class="c1">// points (x, z) in the scene&#39;s units</span>
+	<span class="nx">speed</span>    <span class="kt">float64</span>      <span class="c1">// scene units an hour</span>
+	<span class="nx">distance</span> <span class="kt">float64</span>      <span class="c1">// how far along the route it is, forth and back</span>
+	<span class="nx">trips</span>    <span class="kt">int</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">ferryRule</span> <span class="p">=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Definition</span><span class="p">{</span>
+	<span class="nx">Description</span><span class="p">:</span> <span class="nx">protocol</span><span class="p">.</span><span class="nx">RuleDescription</span><span class="p">{</span>
+		<span class="nx">Name</span><span class="p">:</span>    <span class="s">&#34;ferry&#34;</span><span class="p">,</span>
+		<span class="nx">Summary</span><span class="p">:</span> <span class="s">&#34;Sails a ferry along a route, back and forth.&#34;</span><span class="p">,</span>
+		<span class="nx">Parameters</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">ParameterDescription</span><span class="p">{</span>
+			<span class="p">{</span><span class="nx">Name</span><span class="p">:</span> <span class="s">&#34;route&#34;</span><span class="p">,</span> <span class="nx">Type</span><span class="p">:</span> <span class="s">&#34;list&#34;</span><span class="p">,</span> <span class="nx">Summary</span><span class="p">:</span> <span class="s">&#34;points [x, z] it sails through&#34;</span><span class="p">},</span>
+			<span class="p">{</span><span class="nx">Name</span><span class="p">:</span> <span class="s">&#34;speed&#34;</span><span class="p">,</span> <span class="nx">Type</span><span class="p">:</span> <span class="s">&#34;number&#34;</span><span class="p">,</span> <span class="nx">Default</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span> <span class="nx">Summary</span><span class="p">:</span> <span class="s">&#34;scene units an hour&#34;</span><span class="p">},</span>
+		<span class="p">},</span>
+		<span class="nx">Writes</span><span class="p">:</span>    <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;ferry&#34;</span><span class="p">},</span>
+		<span class="nx">Publishes</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">OutputDescription</span><span class="p">{</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">Kind</span><span class="p">(</span><span class="s">&#34;ferry&#34;</span><span class="p">,</span> <span class="s">&#34;a boat on a route&#34;</span><span class="p">),</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">Event</span><span class="p">(</span><span class="s">&#34;arrival&#34;</span><span class="p">,</span> <span class="s">&#34;the ferry reached an end of its route&#34;</span><span class="p">)},</span>
+	<span class="p">},</span>
+	<span class="nx">New</span><span class="p">:</span> <span class="kd">func</span><span class="p">(</span><span class="nx">parameters</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Parameters</span><span class="p">)</span> <span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Rule</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">rule</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">ferry</span><span class="p">{</span><span class="nx">speed</span><span class="p">:</span> <span class="nx">parameters</span><span class="p">.</span><span class="nf">Number</span><span class="p">(</span><span class="s">&#34;speed&#34;</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)}</span>
+		<span class="nx">points</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">parameters</span><span class="p">[</span><span class="s">&#34;route&#34;</span><span class="p">].([]</span><span class="kt">any</span><span class="p">)</span>
+		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">point</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">points</span> <span class="p">{</span>
+			<span class="nx">pair</span> <span class="o">:=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">VectorFrom</span><span class="p">(</span><span class="nx">point</span><span class="p">,</span> <span class="nx">spatial</span><span class="p">.</span><span class="nx">Vector</span><span class="p">{})</span>
+			<span class="nx">rule</span><span class="p">.</span><span class="nx">route</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="kt">float64</span><span class="p">{</span><span class="nb">float64</span><span class="p">(</span><span class="nx">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float64</span><span class="p">(</span><span class="nx">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])})</span>
+		<span class="p">}</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">)</span> <span class="p">&lt;</span> <span class="mi">2</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;ferry: a route needs two points at least&#34;</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="k">return</span> <span class="nx">rule</span><span class="p">,</span> <span class="kc">nil</span>
+	<span class="p">},</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">ferry</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">place</span> <span class="o">:=</span> <span class="nx">rule</span><span class="p">.</span><span class="nf">placement</span><span class="p">()</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;ferry&#34;</span><span class="p">,</span> <span class="nx">Kind</span><span class="p">:</span> <span class="s">&#34;ferry&#34;</span><span class="p">,</span> <span class="nx">Transform</span><span class="p">:</span> <span class="o">&amp;</span><span class="nx">place</span><span class="p">,</span>
+		<span class="nx">Shape</span><span class="p">:</span>      <span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Shape</span><span class="p">{</span><span class="nx">Primitive</span><span class="p">:</span> <span class="s">&#34;box&#34;</span><span class="p">,</span> <span class="nx">Size</span><span class="p">:</span> <span class="nx">spatial</span><span class="p">.</span><span class="nx">Vector</span><span class="p">{</span><span class="mf">0.003</span><span class="p">,</span> <span class="mf">0.0015</span><span class="p">,</span> <span class="mf">0.007</span><span class="p">},</span> <span class="nx">Color</span><span class="p">:</span> <span class="o">&amp;</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="kt">float32</span><span class="p">{</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mi">1</span><span class="p">}},</span>
+		<span class="nx">Properties</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;label&#34;</span><span class="p">:</span> <span class="s">&#34;Ferry&#34;</span><span class="p">,</span> <span class="s">&#34;icon&#34;</span><span class="p">:</span> <span class="s">&#34;ship&#34;</span><span class="p">}})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">ferry</span><span class="p">)</span> <span class="nf">Step</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">length</span> <span class="o">:=</span> <span class="nx">rule</span><span class="p">.</span><span class="nf">length</span><span class="p">()</span>
+	<span class="nx">before</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Floor</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">distance</span> <span class="o">/</span> <span class="nx">length</span><span class="p">)</span>
+	<span class="nx">rule</span><span class="p">.</span><span class="nx">distance</span> <span class="o">+=</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">speed</span> <span class="o">*</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Step</span>
+	<span class="k">if</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Floor</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">distance</span><span class="o">/</span><span class="nx">length</span><span class="p">)</span> <span class="p">&gt;</span> <span class="nx">before</span> <span class="p">{</span> <span class="c1">// passed an end of the route</span>
+		<span class="nx">rule</span><span class="p">.</span><span class="nx">trips</span><span class="o">++</span>
+		<span class="nx">end</span> <span class="o">:=</span> <span class="s">&#34;its home landing&#34;</span>
+		<span class="k">if</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">trips</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span> <span class="p">{</span>
+			<span class="nx">end</span> <span class="p">=</span> <span class="s">&#34;the far landing&#34;</span>
+		<span class="p">}</span>
+		<span class="nx">context</span><span class="p">.</span><span class="nf">Emit</span><span class="p">(</span><span class="s">&#34;arrival&#34;</span><span class="p">,</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;trips&#34;</span><span class="p">:</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">trips</span><span class="p">,</span> <span class="s">&#34;notice&#34;</span><span class="p">:</span> <span class="s">&#34;The ferry reached &#34;</span> <span class="o">+</span> <span class="nx">end</span><span class="p">,</span> <span class="s">&#34;icon&#34;</span><span class="p">:</span> <span class="s">&#34;anchor&#34;</span><span class="p">})</span>
+	<span class="p">}</span>
+	<span class="nx">place</span> <span class="o">:=</span> <span class="nx">rule</span><span class="p">.</span><span class="nf">placement</span><span class="p">()</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Modify</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;ferry&#34;</span><span class="p">,</span> <span class="nx">Transform</span><span class="p">:</span> <span class="o">&amp;</span><span class="nx">place</span><span class="p">,</span>
+		<span class="nx">Properties</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;badge&#34;</span><span class="p">:</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprint</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">trips</span><span class="p">,</span> <span class="s">&#34; trips&#34;</span><span class="p">),</span> <span class="s">&#34;trips&#34;</span><span class="p">:</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">trips</span><span class="p">}})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// placement is where the ferry is now, turned to face where it goes.</span>
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">ferry</span><span class="p">)</span> <span class="nf">placement</span><span class="p">()</span> <span class="nx">spatial</span><span class="p">.</span><span class="nx">Matrix</span> <span class="p">{</span>
+	<span class="nx">length</span> <span class="o">:=</span> <span class="nx">rule</span><span class="p">.</span><span class="nf">length</span><span class="p">()</span>
+	<span class="nx">along</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Mod</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">distance</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="nx">length</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">along</span> <span class="p">&gt;</span> <span class="nx">length</span> <span class="p">{</span> <span class="c1">// on the way back</span>
+		<span class="nx">along</span> <span class="p">=</span> <span class="mi">2</span><span class="o">*</span><span class="nx">length</span> <span class="o">-</span> <span class="nx">along</span>
+	<span class="p">}</span>
+	<span class="k">for</span> <span class="nx">index</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">index</span><span class="o">+</span><span class="mi">1</span> <span class="p">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">);</span> <span class="nx">index</span><span class="o">++</span> <span class="p">{</span>
+		<span class="nx">from</span><span class="p">,</span> <span class="nx">to</span> <span class="o">:=</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">index</span><span class="p">],</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">index</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+		<span class="nx">segment</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Hypot</span><span class="p">(</span><span class="nx">to</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="nx">from</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">to</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="nx">from</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+		<span class="k">if</span> <span class="nx">along</span> <span class="o">&lt;=</span> <span class="nx">segment</span> <span class="o">||</span> <span class="nx">index</span><span class="o">+</span><span class="mi">2</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">)</span> <span class="p">{</span>
+			<span class="nx">share</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Min</span><span class="p">(</span><span class="nx">along</span><span class="o">/</span><span class="nx">segment</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+			<span class="nx">x</span><span class="p">,</span> <span class="nx">z</span> <span class="o">:=</span> <span class="nx">from</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="p">(</span><span class="nx">to</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="nx">from</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="nx">share</span><span class="p">,</span> <span class="nx">from</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">(</span><span class="nx">to</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="nx">from</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="nx">share</span>
+			<span class="nx">heading</span> <span class="o">:=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Atan2</span><span class="p">(</span><span class="nx">to</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="nx">from</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">to</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="nx">from</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+			<span class="nx">place</span> <span class="o">:=</span> <span class="nx">spatial</span><span class="p">.</span><span class="nf">Translation</span><span class="p">(</span><span class="nx">spatial</span><span class="p">.</span><span class="nx">Vector</span><span class="p">{</span><span class="nb">float32</span><span class="p">(</span><span class="nx">x</span><span class="p">),</span> <span class="mf">0.0115</span><span class="p">,</span> <span class="nb">float32</span><span class="p">(</span><span class="nx">z</span><span class="p">)})</span>
+			<span class="nx">turned</span> <span class="o">:=</span> <span class="nx">spatial</span><span class="p">.</span><span class="nf">RotationY</span><span class="p">(</span><span class="nx">heading</span><span class="p">)</span>
+			<span class="k">return</span> <span class="nf">multiply</span><span class="p">(</span><span class="nx">place</span><span class="p">,</span> <span class="nx">turned</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="nx">along</span> <span class="o">-=</span> <span class="nx">segment</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">spatial</span><span class="p">.</span><span class="nf">Identity</span><span class="p">()</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">ferry</span><span class="p">)</span> <span class="nf">length</span><span class="p">()</span> <span class="kt">float64</span> <span class="p">{</span>
+	<span class="nx">total</span> <span class="o">:=</span> <span class="mf">0.0</span>
+	<span class="k">for</span> <span class="nx">index</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">index</span><span class="o">+</span><span class="mi">1</span> <span class="p">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">);</span> <span class="nx">index</span><span class="o">++</span> <span class="p">{</span>
+		<span class="nx">total</span> <span class="o">+=</span> <span class="nx">math</span><span class="p">.</span><span class="nf">Hypot</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">index</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">index</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">index</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="nx">rule</span><span class="p">.</span><span class="nx">route</span><span class="p">[</span><span class="nx">index</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">total</span>
+<span class="p">}</span>
+
+<span class="c1">// multiply is first × second, column-major.</span>
+<span class="kd">func</span> <span class="nf">multiply</span><span class="p">(</span><span class="nx">first</span><span class="p">,</span> <span class="nx">second</span> <span class="nx">spatial</span><span class="p">.</span><span class="nx">Matrix</span><span class="p">)</span> <span class="nx">spatial</span><span class="p">.</span><span class="nx">Matrix</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">result</span> <span class="nx">spatial</span><span class="p">.</span><span class="nx">Matrix</span>
+	<span class="k">for</span> <span class="nx">column</span> <span class="o">:=</span> <span class="k">range</span> <span class="mi">4</span> <span class="p">{</span>
+		<span class="k">for</span> <span class="nx">row</span> <span class="o">:=</span> <span class="k">range</span> <span class="mi">4</span> <span class="p">{</span>
+			<span class="k">for</span> <span class="nx">index</span> <span class="o">:=</span> <span class="k">range</span> <span class="mi">4</span> <span class="p">{</span>
+				<span class="nx">result</span><span class="p">[</span><span class="nx">column</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="nx">row</span><span class="p">]</span> <span class="o">+=</span> <span class="nx">first</span><span class="p">[</span><span class="nx">index</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="nx">row</span><span class="p">]</span> <span class="o">*</span> <span class="nx">second</span><span class="p">[</span><span class="nx">column</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="nx">index</span><span class="p">]</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">result</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>Add <code>ferryRule</code> to the plugin&rsquo;s rules, and the ferry to the stage:</p>
+<pre><code class="language-yaml">      - <span class="nt">rule</span><span class="p">:</span> <span class="l">ferry</span>
+        <span class="nt">with</span><span class="p">:</span> {<span class="nt">route</span><span class="p">:</span> <span class="nt">[[-0.05, 0.0295], [0, 0.0215], [0.05, 0.0315]], speed</span><span class="p">:</span> <span class="m">0.15</span>}
+</code></pre>
+
+<p>The route is in the scene&rsquo;s units (kilometres), <code>[x, z]</code>, with z growing to the south.</p>
+
+<h4 id="checkpoint-2">Checkpoint</h4>
+
+<p>A red ferry sails along the river, under the bridge, turns at the end and comes back; its label
+says how many trips it has made.</p>
+
+<p><img src="./images/quest/level-3.jpg" alt="Level 3: the ferry on the river, labelled, with 3 trips" /></p>
+
+<h4 id="bonus-optional-a-faster-ferry-in-a-hurry">Bonus (optional): a faster ferry in a hurry</h4>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+`speed: 0.3` in the rules file: no code changes. That is what parameters are for.
+
+</details>
+
+<p><img src="./images/quest/achievement-shipwright.svg" alt="Achievement unlocked: Shipwright" /></p>
+
+<hr>
+
+<h2 id="level-4-the-herald">Level 4 · The Herald</h2>
+
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Pieces</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Notices when the ferry lands, and what a run writes</td>
+<td><code>Emit</code>, <code>notice</code>, <code>events.jsonl</code></td>
+<td>6 min</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="the-idea-3">The idea</h4>
+
+<p>A <strong>town herald</strong> rings a bell and calls out the news. A rule&rsquo;s <strong>event</strong> is news: a name and some
+data, sent to whoever listens. An event with a <code>notice</code> is also called out on screen, under the
+header, and fades after a few seconds.</p>
+
+<p><code>ferry.go</code> already emits one at each end of the route:</p>
+<pre><code class="language-go"><span class="nx">context</span><span class="p">.</span><span class="nf">Emit</span><span class="p">(</span><span class="s">&#34;arrival&#34;</span><span class="p">,</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;trips&#34;</span><span class="p">:</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">trips</span><span class="p">,</span> <span class="s">&#34;notice&#34;</span><span class="p">:</span> <span class="s">&#34;The ferry reached &#34;</span> <span class="o">+</span> <span class="nx">end</span><span class="p">,</span> <span class="s">&#34;icon&#34;</span><span class="p">:</span> <span class="s">&#34;anchor&#34;</span><span class="p">})</span>
+</code></pre>
+
+<h4 id="checkpoint-3">Checkpoint</h4>
+
+<p>Live, notices appear under the clock as the ferry lands. Without a window, the run writes
+<code>results/events.jsonl</code>, one event per line:</p>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;data&#34;</span><span class="p">:{</span><span class="nt">&#34;icon&#34;</span><span class="p">:</span><span class="s2">&#34;anchor&#34;</span><span class="p">,</span><span class="nt">&#34;notice&#34;</span><span class="p">:</span><span class="s2">&#34;The ferry reached the far landing&#34;</span><span class="p">,</span><span class="nt">&#34;trips&#34;</span><span class="p">:</span><span class="mi">1</span><span class="p">},</span><span class="nt">&#34;name&#34;</span><span class="p">:</span><span class="s2">&#34;arrival&#34;</span><span class="p">,</span><span class="nt">&#34;origin&#34;</span><span class="p">:</span><span class="s2">&#34;harbour&#34;</span><span class="p">,</span><span class="nt">&#34;stage&#34;</span><span class="p">:</span><span class="s2">&#34;day&#34;</span><span class="p">,</span><span class="nt">&#34;time&#34;</span><span class="p">:</span><span class="mf">0.7</span><span class="p">}</span>
+</code></pre>
+
+<h4 id="bonus-optional-a-ship-s-bell">Bonus (optional): a ship&rsquo;s bell</h4>
+
+<p>Emit a <code>bell</code> event every hour, with a notice.</p>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+In the clock's `Step`: `if math.Floor(context.Time) > math.Floor(context.Time-context.Step) {
+context.Emit("bell", map[string]any{"notice": "Eight bells", "icon": "bell"}) }`, and add
+`plugin.Event("bell", "an hour struck")` to its `Publishes`.
+
+</details>
+
+<p><img src="./images/quest/achievement-herald.svg" alt="Achievement unlocked: Herald" /></p>
+
+<p>Learn more: <a href="./overlay">Labels, header and notices</a></p>
+
+<hr>
+
+<h2 id="level-5-the-harbour-clerk">Level 5 · The Harbour clerk</h2>
+
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Pieces</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Count the ferry&rsquo;s trips, and check the day went right</td>
+<td>reading the world, <code>Reads</code>, objectives</td>
+<td>10 min</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="the-idea-4">The idea</h4>
+
+<p>A <strong>clerk</strong> keeps the books by looking, not by being told: they walk down to the quay and count.
+A rule says what it <strong>reads</strong> (here, entities of kind <code>ferry</code>), and its plugin&rsquo;s copy of the world
+stays up to date with those. The clerk sums every ferry&rsquo;s trips.</p>
+
+<p><strong>Objectives</strong> are the result you expect, written in the script: <em>a ferry on the river</em>, <em>a dozen
+trips by the evening</em>. A run without a window checks them and fails if one is missed, so a change
+that breaks the harbour shows at once.</p>
+
+<h4 id="build-it-3">Build it</h4>
+
+<p><code>harbour/quay.go</code>:</p>
+<pre><code class="language-go"><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+	<span class="s">&#34;fmt&#34;</span>
+
+	<span class="s">&#34;github.com/akrck02/go-simulator/plugin&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/protocol&#34;</span>
+	<span class="s">&#34;github.com/akrck02/go-simulator/world&#34;</span>
+<span class="p">)</span>
+
+<span class="c1">// quay counts every ferry&#39;s trips, read from the world, in the header&#39;s second line.</span>
+<span class="kd">type</span> <span class="nx">quay</span> <span class="kd">struct</span><span class="p">{</span> <span class="nx">arrivals</span> <span class="kt">int</span> <span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">quayRule</span> <span class="p">=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Definition</span><span class="p">{</span>
+	<span class="nx">Description</span><span class="p">:</span> <span class="nx">protocol</span><span class="p">.</span><span class="nx">RuleDescription</span><span class="p">{</span>
+		<span class="nx">Name</span><span class="p">:</span>      <span class="s">&#34;quay&#34;</span><span class="p">,</span>
+		<span class="nx">Summary</span><span class="p">:</span>   <span class="s">&#34;Counts the ferry&#39;s arrivals.&#34;</span><span class="p">,</span>
+		<span class="nx">Reads</span><span class="p">:</span>     <span class="nx">world</span><span class="p">.</span><span class="nx">Interest</span><span class="p">{</span><span class="nx">Kinds</span><span class="p">:</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;ferry&#34;</span><span class="p">}},</span>
+		<span class="nx">Writes</span><span class="p">:</span>    <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;counter&#34;</span><span class="p">},</span>
+		<span class="nx">Expects</span><span class="p">:</span>   <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">InputDescription</span><span class="p">{</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">ReadsKind</span><span class="p">(</span><span class="s">&#34;ferry&#34;</span><span class="p">)},</span>
+		<span class="nx">Publishes</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">OutputDescription</span><span class="p">{</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">Kind</span><span class="p">(</span><span class="s">&#34;counter&#34;</span><span class="p">,</span> <span class="s">&#34;a number in the header&#34;</span><span class="p">),</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">Event</span><span class="p">(</span><span class="s">&#34;quay&#34;</span><span class="p">,</span> <span class="s">&#34;arrivals so far&#34;</span><span class="p">)},</span>
+	<span class="p">},</span>
+	<span class="nx">New</span><span class="p">:</span> <span class="kd">func</span><span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Parameters</span><span class="p">)</span> <span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Rule</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="o">&amp;</span><span class="nx">quay</span><span class="p">{},</span> <span class="kc">nil</span> <span class="p">},</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">quay</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;quay-counter&#34;</span><span class="p">,</span> <span class="nx">Kind</span><span class="p">:</span> <span class="s">&#34;counter&#34;</span><span class="p">,</span>
+		<span class="nx">Properties</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;label&#34;</span><span class="p">:</span> <span class="s">&#34;Arrivals&#34;</span><span class="p">,</span> <span class="s">&#34;badge&#34;</span><span class="p">:</span> <span class="s">&#34;0&#34;</span><span class="p">,</span> <span class="s">&#34;icon&#34;</span><span class="p">:</span> <span class="s">&#34;anchor&#34;</span><span class="p">,</span> <span class="s">&#34;pinned&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">quay</span><span class="p">)</span> <span class="nf">Step</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">rule</span><span class="p">.</span><span class="nx">arrivals</span> <span class="p">=</span> <span class="mi">0</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">boat</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">context</span><span class="p">.</span><span class="nx">World</span><span class="p">.</span><span class="nf">EntitiesOfKind</span><span class="p">(</span><span class="s">&#34;ferry&#34;</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">trips</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">boat</span><span class="p">.</span><span class="nx">Properties</span><span class="p">[</span><span class="s">&#34;trips&#34;</span><span class="p">].(</span><span class="kt">int</span><span class="p">)</span>
+		<span class="nx">rule</span><span class="p">.</span><span class="nx">arrivals</span> <span class="o">+=</span> <span class="nx">trips</span>
+	<span class="p">}</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Modify</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;quay-counter&#34;</span><span class="p">,</span> <span class="nx">Properties</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;badge&#34;</span><span class="p">:</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprint</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">arrivals</span><span class="p">)}})</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Emit</span><span class="p">(</span><span class="s">&#34;quay&#34;</span><span class="p">,</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">any</span><span class="p">{</span><span class="s">&#34;arrivals&#34;</span><span class="p">:</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">arrivals</span><span class="p">})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>Add <code>quayRule</code> to the plugin and the stage, and objectives to the stage:</p>
+<pre><code class="language-yaml">      - <span class="nt">rule</span><span class="p">:</span> <span class="l">quay</span>
+    <span class="nt">objectives</span><span class="p">:</span>
+      - {<span class="nt">name</span><span class="p">:</span> <span class="nt">a ferry on the river, at</span><span class="p">:</span> <span class="nt">1, count</span><span class="p">:</span> {<span class="nt">kind</span><span class="p">:</span> <span class="nt">ferry}, min</span><span class="p">:</span> <span class="nt">1, max</span><span class="p">:</span> <span class="m">1</span>}
+      - {<span class="nt">name</span><span class="p">:</span> <span class="nt">a dozen trips by the evening, at</span><span class="p">:</span> <span class="nt">12, event</span><span class="p">:</span> <span class="nt">quay, value</span><span class="p">:</span> <span class="nt">arrivals, min</span><span class="p">:</span> <span class="m">12</span>}
+</code></pre>
+
+<h4 id="checkpoint-4">Checkpoint</h4>
+
+<p>The header&rsquo;s second line counts the arrivals. Without a window the run ends with:</p>
+<pre><code>reached · a dozen trips by the evening at 12.000000000000036: 17 (expected at least 12)
+objectives: 2 of 2 reached
+</code></pre>
+
+<p>and <code>results/objectives.json</code>. Set the ferry&rsquo;s speed to <code>0.05</code> and run again: the objective is
+missed, and <code>simulate</code> fails.</p>
+
+<h4 id="bonus-optional-busy-hours">Bonus (optional): busy hours</h4>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+An objective at noon of the stage: `{name: four trips by noon, at: 4, event: quay, value: arrivals, min: 4}`
+(the stage's hour 4 is 12:00, as the day starts at 8).
+
+</details>
+
+<p><img src="./images/quest/achievement-harbour-clerk.svg" alt="Achievement unlocked: Harbour clerk" /></p>
+
+<p>Learn more: <a href="./rules-files">Objectives</a> · <a href="./architecture">Architecture</a></p>
+
+<hr>
+
+<h2 id="level-6-the-conductor">Level 6 · The Conductor</h2>
+
+<table>
+<thead>
+<tr>
+<th>Mission</th>
+<th>Pieces</th>
+<th>Time</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Your plugin and the motion plugin together</td>
+<td>two plugins, two stages, two clocks</td>
+<td>5 min</td>
+</tr>
+</tbody>
+</table>
+
+<h4 id="the-idea-5">The idea</h4>
+
+<p>An <strong>orchestra</strong> plays one piece with many players who never talk to each other: they all follow
+the conductor and listen to the same music. Plugins are the same: none knows the others, they only
+share the <strong>world</strong>. Here the weather turns the day while your harbour keeps its own clock.</p>
+
+<h4 id="build-it-4">Build it</h4>
+
+<p>Both plugins and both stages in one file:</p>
+<pre><code class="language-yaml"><span class="nt">plugins</span><span class="p">:</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">harbour</span>
+    <span class="nt">command</span><span class="p">:</span> <span class="p">[</span><span class="l">go, run, .]</span>
+    <span class="nt">directory</span><span class="p">:</span> <span class="l">harbour</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">motion</span>
+    <span class="nt">command</span><span class="p">:</span> <span class="p">[</span><span class="l">go, run, .]</span>
+    <span class="nt">directory</span><span class="p">:</span> <span class="l">../go-simulator-motion</span>
+
+<span class="nt">stages</span><span class="p">:</span>
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">day</span>
+    <span class="nt">clock</span><span class="p">:</span> {<span class="nt">unit</span><span class="p">:</span> <span class="nt">hour, from</span><span class="p">:</span> <span class="nt">0, to</span><span class="p">:</span> <span class="nt">12, step</span><span class="p">:</span> <span class="nt">0.05, pace</span><span class="p">:</span> <span class="m">0.1</span>}
+    <span class="nt">rules</span><span class="p">:</span>
+      - {<span class="nt">rule</span><span class="p">:</span> <span class="nt">clock, with</span><span class="p">:</span> {<span class="nt">start</span><span class="p">:</span> <span class="m">8</span>}}
+      - <span class="nt">rule</span><span class="p">:</span> <span class="l">ferry</span>
+        <span class="nt">with</span><span class="p">:</span> {<span class="nt">route</span><span class="p">:</span> <span class="nt">[[-0.05, 0.0295], [0, 0.0215], [0.05, 0.0315]], speed</span><span class="p">:</span> <span class="m">0.15</span>}
+      - <span class="nt">rule</span><span class="p">:</span> <span class="l">quay</span>
+
+  - <span class="nt">name</span><span class="p">:</span> <span class="l">weather</span>
+    <span class="nt">clock</span><span class="p">:</span> <span class="l">realtime</span>
+    <span class="nt">rules</span><span class="p">:</span>
+      - {<span class="nt">rule</span><span class="p">:</span> <span class="nt">day_cycle, with</span><span class="p">:</span> {<span class="nt">seconds_per_day</span><span class="p">:</span> <span class="nt">120}, toggle_key</span><span class="p">:</span> <span class="l">T}</span>
+      - {<span class="nt">rule</span><span class="p">:</span> <span class="nt">gusts, with</span><span class="p">:</span> {<span class="nt">variation</span><span class="p">:</span> <span class="m">0.5</span>}}
+      - <span class="nt">rule</span><span class="p">:</span> <span class="l">cloud_drift</span>
+</code></pre>
+
+<h4 id="checkpoint-5">Checkpoint</h4>
+
+<p>The ferry sails, the clock runs and the arrivals count, while the sun crosses the sky and the
+trees sway. Press <strong>N</strong> for the night: the village&rsquo;s lamps glow, and the labels stay readable.</p>
+
+<p><img src="./images/quest/level-6-night.jpg" alt="Level 6 at night: the ferry, the clock and the notices over the dark village" /></p>
+
+<h4 id="bonus-optional-the-clock-follows-the-sun">Bonus (optional): the clock follows the sun</h4>
+
+<p>Make the harbour&rsquo;s clock read the hour from the sun instead of its own stage.</p>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+Give the clock rule `Reads: world.Interest{Environment: true}` and work the hour out from
+`context.World.Environment`'s sun direction. Then the two plugins agree on the time, through the
+world.
+
+</details>
+
+<p><img src="./images/quest/achievement-conductor.svg" alt="Achievement unlocked: Conductor" /></p>
+
+<p>Learn more: <a href="./architecture">Architecture: interests</a></p>
+
+<hr>
+
+<h2 id="final-challenge-fleet-owner">Final challenge · Fleet owner</h2>
+
+<p>Put a <strong>second ferry</strong>, called <em>Gull</em>, on the river, sailing the other way and more slowly. The
+clerk counts both, and the objectives ask for two ferries and twenty trips.</p>
+
+<blockquote>
+<p><strong>Hint:</strong> the same rule can be used twice in a stage, with a <code>name</code> for each use. Each ferry
+needs an id of its own, so give the rule a <code>name</code> parameter and use it as the entity&rsquo;s id, its
+label and in its notices.</p>
+</blockquote>
+
+<p>Try it on your own first, then compare with the solution.</p>
+
+<p><img src="./images/quest/final.jpg" alt="The final challenge: Gull on the river, notices from both ferries, five arrivals counted" /></p>
+
+<details>
+<summary>🔓 Show the solution</summary>
+
+In `ferry.go`, a `name string` in the struct, a parameter
+`{Name: "name", Type: "text", Default: "Ferry", Summary: "its name, on its label"}`,
+`name: parameters.Text("name", "Ferry")` in `New`, and `world.Identifier(rule.name)` instead of
+`"ferry"` as the id, `rule.name` as the label and `rule.name + " reached " + end` as the notice.
+
+<pre><code>      - rule: ferry
+        with: {route: [[-0.05, 0.0295], [0, 0.0215], [0.05, 0.0315]], speed: 0.15}
+      - rule: ferry
+        name: second ferry
+        with: {name: Gull, route: [[0.05, 0.0315], [0, 0.0215], [-0.05, 0.0295]], speed: 0.1}
+      - rule: quay
+    objectives:
+      - {name: two ferries on the river, at: 1, count: {kind: ferry}, min: 2, max: 2}
+      - {name: twenty trips by the evening, at: 12, event: quay, value: arrivals, min: 20}</code></pre>
+
+The clerk needs no change: it already counts every entity of kind `ferry`. The run ends
+`reached · twenty trips by the evening …: 28`.
+
+</details>
+
+<p><img src="./images/quest/achievement-final.svg" alt="Rare achievement unlocked: Fleet owner" /></p>
+
+<hr>
+
+<h2 id="well-done">Well done</h2>
+
+<p><img src="./images/quest/achievements-all.svg" alt="All seven achievements: Stage manager, Clockmaker, Shipwright, Herald, Harbour clerk, Conductor and Fleet owner" /></p>
+
+<p>You wrote a simulator from scratch, ran it with and without a window, checked it with objectives
+and played it beside another plugin.</p>
+
+<h3 id="ideas-to-keep-going">Ideas to keep going</h3>
+
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Difficulty</th>
+<th>Hint</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>Passengers on the badge</td>
+<td>⭐</td>
+<td>A number that goes up at each landing, in the ferry&rsquo;s properties</td>
+</tr>
+
+<tr>
+<td>A plugin in another language</td>
+<td>⭐⭐</td>
+<td>JSON frames over standard input and output: <a href="./protocol">protocol</a></td>
+</tr>
+
+<tr>
+<td>A field: the river&rsquo;s depth as a grid</td>
+<td>⭐⭐</td>
+<td><code>context.SetField</code>, then <code>snapshot_fields</code> writes it to files</td>
+</tr>
+
+<tr>
+<td>A town that grows round the harbour</td>
+<td>⭐⭐⭐</td>
+<td>The <a href="https://github.com/akrck02/go-simulator-urban" target="_blank">urban plugin</a> and a <code>scene_style</code></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<table>
+<thead>
+<tr>
+<th>You see</th>
+<th>Why, and what to do</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>starting plugin &quot;harbour&quot;: exec: &quot;go&quot;: executable file not found</code></td>
+<td>Go is not on the <code>PATH</code> of the shell that runs the simulator</td>
+</tr>
+
+<tr>
+<td><code>stage &quot;day&quot;: no plugin offers rule &quot;ferry&quot;</code></td>
+<td>The definition is not in the plugin&rsquo;s <code>Rules</code> list</td>
+</tr>
+
+<tr>
+<td><code>… made a change that cannot apply: entity &quot;ferry&quot; does not exist</code></td>
+<td><code>Modify</code> before <code>Add</code>: add it in <code>Start</code></td>
+</tr>
+
+<tr>
+<td>Nothing moves live</td>
+<td>A stepped stage with <code>pace: 0</code> only steps on request: give it a pace</td>
+</tr>
+
+<tr>
+<td>The ferry is under the ground or flies</td>
+<td>Its height (<code>0.0115</code> in <code>placement</code>) is in scene units: try a little more or less</td>
+</tr>
+
+<tr>
+<td>A plugin prints garbage</td>
+<td>Standard output carries the protocol: log to standard error (<code>log.Print</code>)</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+
+<p><a href="./readme">← All the documentation</a></p>

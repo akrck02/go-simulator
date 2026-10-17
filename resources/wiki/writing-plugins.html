@@ -1,0 +1,181 @@
+<h1 id="writing-plugins">🔌 Writing plugins</h1>
+
+<p>A plugin is a small program that offers <strong>rules</strong>: things it knows how to do, such as &ldquo;turn the
+sun&rdquo; or &ldquo;grow the town for a year&rdquo;. You write the rules; the host decides when to call them and
+takes care of everything else (starting your program, sending it the world, forwarding changes,
+saving results).</p>
+
+<p>In Go, the <code>plugin</code> package does all the talking for you, and a useful plugin fits in a page. In
+any other language, the <a href="./protocol">protocol</a> is plain JSON over standard input and output.</p>
+
+<p>Here is the whole journey, using a lighthouse whose beam turns.</p>
+
+<h2 id="in-go">In Go</h2>
+
+<h3 id="1-a-rule">1. A rule</h3>
+
+<p>A rule is anything with a <code>Step</code> method. It reads <code>context.World</code> (the plugin&rsquo;s copy of the world)
+and describes what changes through the context:</p>
+<pre><code class="language-go"><span class="kd">type</span> <span class="nx">lighthouse</span> <span class="kd">struct</span><span class="p">{</span> <span class="nx">angle</span><span class="p">,</span> <span class="nx">speed</span> <span class="kt">float64</span> <span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">rule</span> <span class="o">*</span><span class="nx">lighthouse</span><span class="p">)</span> <span class="nf">Step</span><span class="p">(</span><span class="nx">context</span> <span class="o">*</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">rule</span><span class="p">.</span><span class="nx">angle</span> <span class="o">+=</span> <span class="nx">rule</span><span class="p">.</span><span class="nx">speed</span> <span class="o">*</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Step</span>
+	<span class="nx">beam</span> <span class="o">:=</span> <span class="nx">spatial</span><span class="p">.</span><span class="nf">RotationY</span><span class="p">(</span><span class="nx">rule</span><span class="p">.</span><span class="nx">angle</span><span class="p">)</span>
+	<span class="nx">context</span><span class="p">.</span><span class="nf">Modify</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">world</span><span class="p">.</span><span class="nx">Entity</span><span class="p">{</span><span class="nx">Identifier</span><span class="p">:</span> <span class="s">&#34;lighthouse-beam&#34;</span><span class="p">,</span> <span class="nx">Transform</span><span class="p">:</span> <span class="o">&amp;</span><span class="nx">beam</span><span class="p">})</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>A rule that also implements <code>Start(context *plugin.Context) error</code> does something once, when the
+simulation starts (publish a field, set up its state). Returning an error stops the simulation
+with it.</p>
+
+<h3 id="2-its-definition">2. Its definition</h3>
+
+<p>A definition describes the rule to the host and builds an instance from the parameters of one use
+in a rules file:</p>
+<pre><code class="language-go"><span class="nx">turn</span> <span class="o">:=</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Definition</span><span class="p">{</span>
+	<span class="nx">Description</span><span class="p">:</span> <span class="nx">protocol</span><span class="p">.</span><span class="nx">RuleDescription</span><span class="p">{</span>
+		<span class="nx">Name</span><span class="p">:</span>    <span class="s">&#34;turn_beam&#34;</span><span class="p">,</span>
+		<span class="nx">Summary</span><span class="p">:</span> <span class="s">&#34;Turns the lighthouse beam.&#34;</span><span class="p">,</span>
+		<span class="nx">Parameters</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">ParameterDescription</span><span class="p">{</span>
+			<span class="p">{</span><span class="nx">Name</span><span class="p">:</span> <span class="s">&#34;speed&#34;</span><span class="p">,</span> <span class="nx">Type</span><span class="p">:</span> <span class="s">&#34;number&#34;</span><span class="p">,</span> <span class="nx">Default</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">Summary</span><span class="p">:</span> <span class="s">&#34;radians per second&#34;</span><span class="p">},</span>
+		<span class="p">},</span>
+		<span class="nx">Reads</span><span class="p">:</span>  <span class="nx">world</span><span class="p">.</span><span class="nx">Interest</span><span class="p">{</span><span class="nx">Kinds</span><span class="p">:</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;beam&#34;</span><span class="p">}},</span>
+		<span class="nx">Writes</span><span class="p">:</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;beam&#34;</span><span class="p">},</span>
+		<span class="nx">Publishes</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">OutputDescription</span><span class="p">{</span>
+			<span class="nx">plugin</span><span class="p">.</span><span class="nf">Kind</span><span class="p">(</span><span class="s">&#34;beam&#34;</span><span class="p">,</span> <span class="s">&#34;the lighthouse&#39;s turning beam, moved by its transform&#34;</span><span class="p">),</span>
+		<span class="p">},</span>
+	<span class="p">},</span>
+	<span class="nx">New</span><span class="p">:</span> <span class="kd">func</span><span class="p">(</span><span class="nx">parameters</span> <span class="nx">plugin</span><span class="p">.</span><span class="nx">Parameters</span><span class="p">)</span> <span class="p">(</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Rule</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="o">&amp;</span><span class="nx">lighthouse</span><span class="p">{</span><span class="nx">speed</span><span class="p">:</span> <span class="nx">parameters</span><span class="p">.</span><span class="nf">Number</span><span class="p">(</span><span class="s">&#34;speed&#34;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)},</span> <span class="kc">nil</span>
+	<span class="p">},</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>Declare every parameter, what the rule reads and what it writes: the host sends the plugin only
+what its rules read, and tools build references from the description.</p>
+
+<p><code>Publishes</code> and <code>Expects</code> are the rule&rsquo;s <a href="./protocol">contracts</a>: what it publishes and
+what it needs, with units. The host compares them before the first step and refuses to start when
+two plugins disagree, so a wrong unit shows at once instead of as a strange result. The <code>plugin</code>
+package has one-line helpers: <code>plugin.Field(&quot;elevation&quot;, &quot;m&quot;, &quot;height of the ground&quot;)</code>,
+<code>plugin.IndexField(&quot;biome&quot;, &quot;biomes&quot;, …)</code>, <code>plugin.Kind</code>, <code>plugin.Event</code> and <code>plugin.Property</code>
+for what it publishes; <code>plugin.NeedsField(&quot;elevation&quot;, &quot;m&quot;)</code>, <code>plugin.ReadsField</code>,
+<code>plugin.ReadsKind</code> and <code>plugin.ReadsEvent</code> for what it reads.</p>
+
+<h3 id="3-the-plugin">3. The plugin</h3>
+<pre><code class="language-go"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="nx">log</span><span class="p">.</span><span class="nf">SetFlags</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+	<span class="nx">coast</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Plugin</span><span class="p">{</span><span class="nx">Name</span><span class="p">:</span> <span class="s">&#34;coast&#34;</span><span class="p">,</span> <span class="nx">Version</span><span class="p">:</span> <span class="s">&#34;0.1.0&#34;</span><span class="p">,</span> <span class="nx">Rules</span><span class="p">:</span> <span class="p">[]</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">Definition</span><span class="p">{</span><span class="nx">turn</span><span class="p">}}</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">coast</span><span class="p">.</span><span class="nf">Serve</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>Logs go to standard error: standard output carries the protocol.</p>
+
+<h3 id="the-context">The context</h3>
+
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Use</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>World</code></td>
+<td>The plugin&rsquo;s copy of the world, up to date with other plugins&rsquo; changes it reads</td>
+</tr>
+
+<tr>
+<td><code>Stage</code>, <code>Time</code>, <code>Step</code>, <code>Instance</code></td>
+<td>The stage, the time after the step, the time it covers, the instance being run</td>
+</tr>
+
+<tr>
+<td><code>Events</code></td>
+<td>Events of other plugins the rule reads, received with this request; at the start, the last of each name</td>
+</tr>
+
+<tr>
+<td><code>Add</code>, <code>Remove</code>, <code>Modify</code></td>
+<td>Entity changes</td>
+</tr>
+
+<tr>
+<td><code>SetField</code>, <code>SetEnvironment</code></td>
+<td>Field and environment changes</td>
+</tr>
+
+<tr>
+<td><code>Emit(name, data)</code></td>
+<td>Tell something happened</td>
+</tr>
+
+<tr>
+<td><code>ClearSceneArea(area)</code></td>
+<td>Hide what some nodes of the drawn scene show in an area</td>
+</tr>
+</tbody>
+</table>
+<p>Changes are applied to the plugin&rsquo;s copy at once, so the rule and the rules after it in the same
+request see them, and are sent to the host at the end of the request. A change that cannot apply
+(modifying an entity that does not exist) stops the simulation with a clear message.</p>
+
+<h3 id="parameters">Parameters</h3>
+
+<p>Parameters arrive as JSON values (numbers are float64, lists <code>[]any</code>, maps <code>map[string]any</code>).
+<code>Number</code>, <code>Boolean</code>, <code>Text</code>, <code>Vector</code> and <code>Map</code> read them with a fallback; <code>plugin.Path</code> turns a
+path written in a rules file into one the plugin can open (relative to the rules file, <code>~/</code> from
+home). For a large set of parameters, marshal them to JSON and decode into a struct, filling the
+defaults afterwards.</p>
+
+<h3 id="shared-state">Shared state</h3>
+
+<p>Rules of one plugin can share state: the rule that sets things up registers it under its instance
+name, and the others find it by a parameter (<code>city: my_town</code>). When several rules change shared
+state, <code>Plugin.AfterStep</code> runs once after the rules of every request, with the same context, so
+the plugin describes the result once instead of after every rule.</p>
+
+<h3 id="testing">Testing</h3>
+
+<p>The host can run a plugin inside the test process: give <code>host.Build</code> a map of built-ins
+(<code>{&quot;coast&quot;: coastPlugin.ServeConnection}</code>) and name them in the rules file with <code>builtin: true</code>.
+Then <code>engine.Start()</code> and <code>engine.StepStage(stage)</code> drive it, and <code>engine.World</code> shows the result.</p>
+<pre><code class="language-go"><span class="nx">settings</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">configuration</span><span class="p">.</span><span class="nf">Parse</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">rules</span><span class="p">))</span>
+<span class="nx">engine</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">host</span><span class="p">.</span><span class="nf">Build</span><span class="p">(</span><span class="nx">settings</span><span class="p">,</span> <span class="nx">initialWorld</span><span class="p">,</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">host</span><span class="p">.</span><span class="nx">Builtin</span><span class="p">{</span><span class="s">&#34;coast&#34;</span><span class="p">:</span> <span class="nx">coast</span><span class="p">.</span><span class="nx">ServeConnection</span><span class="p">})</span>
+</code></pre>
+
+<h2 id="in-another-language">In another language</h2>
+
+<p>A plugin must:</p>
+
+<ol>
+<li>Read frames from standard input and write frames to standard output (4-byte little-endian
+length, JSON header, attachments).</li>
+<li>Answer <code>describe</code> with its description, <code>attach</code> with <code>attached</code>, <code>start</code> and <code>step</code> with a
+change set, and exit on <code>stop</code>.</li>
+<li>Keep its own copy of the world: apply the start snapshot and every step&rsquo;s <code>incoming</code> changes.</li>
+<li>Read and write field values as float32 attachments, one per <code>set_field</code>, in order.</li>
+</ol>
+
+<p>See <a href="./protocol">protocol</a> for the JSON of every message and change.</p>
+
+<h2 id="good-plugins">Good plugins</h2>
+
+<p>A few habits keep plugins easy to combine:</p>
+
+<ul>
+<li>Know nothing about any particular world. Everything concrete comes from parameters, anchors and
+fields; use made-up examples in comments, tests and documentation.</li>
+<li>Read other plugins&rsquo; results from the world by the names of the <a href="./vocabulary">vocabulary</a>,
+never from their files.</li>
+<li>Publish data, not looks: kinds and properties in physical units; colours and models belong to
+scene styles.</li>
+<li>Be deterministic: take a seed, and derive any randomness from it.</li>
+</ul>

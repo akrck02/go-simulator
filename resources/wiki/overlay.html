@@ -1,0 +1,148 @@
+<h1 id="labels-header-and-notices">🏷️ Labels, header and notices</h1>
+
+<p>Besides the scene, the live viewer (<code>cmd/simulator</code>) writes a few words over it: what a boat
+carries, what time it is in the simulation, what just happened. Plugins do not draw any of it.
+They set a few <a href="./vocabulary">overlay properties</a> on their entities and a <code>notice</code>
+on their events, and the <a href="./running">bridge</a> turns them into labels, a header and
+notices.</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/hero-dark.png">
+  <img alt="A made-up island with three labelled boats, a labelled building, and a header with a clock, two counters and four notices" src="images/hero-light.png" width="720">
+</picture>
+</p>
+
+<p><em>The pictures on this page are captures of the viewer (<code>-capture</code>), by day and with <code>-night</code>,
+of go-renderer&rsquo;s made-up sample island and a small made-up plugin that sails three boats round it.</em></p>
+
+<h2 id="labels">Labels</h2>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/labels-dark.png">
+  <img alt="A flat market plot and a building, each with a label, an icon and a badge under it" src="images/labels-light.png" width="520">
+</picture>
+</p>
+
+<p>An entity with a <code>label</code>, an <code>icon</code> or a <code>badge</code> gets a light pill above it, with the badge in a
+smaller pill underneath. Labels keep their size on screen at any zoom, follow their entity as it
+moves and disappear when it is off screen, hidden or removed. When two would overlap, the one
+nearer the camera is shown.</p>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;add&#34;</span><span class="p">,</span> <span class="nt">&#34;entity&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;ferry&#34;</span><span class="p">,</span> <span class="nt">&#34;kind&#34;</span><span class="p">:</span> <span class="s2">&#34;boat&#34;</span><span class="p">,</span> <span class="nt">&#34;shape&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;primitive&#34;</span><span class="p">:</span> <span class="s2">&#34;box&#34;</span><span class="p">,</span> <span class="nt">&#34;size&#34;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">]},</span>
+  <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;label&#34;</span><span class="p">:</span> <span class="s2">&#34;Ferry → quay&#34;</span><span class="p">,</span> <span class="nt">&#34;icon&#34;</span><span class="p">:</span> <span class="s2">&#34;ship&#34;</span><span class="p">,</span> <span class="nt">&#34;badge&#34;</span><span class="p">:</span> <span class="s2">&#34;12/40&#34;</span><span class="p">,</span> <span class="nt">&#34;label_color&#34;</span><span class="p">:</span> <span class="s2">&#34;#2563eb&#34;</span><span class="p">}}}</span>
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Shown as</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>label</code></td>
+<td>text</td>
+<td>a short text in a light pill above the entity</td>
+</tr>
+
+<tr>
+<td><code>icon</code></td>
+<td>text: a <a href="https://lucide.dev/icons" target="_blank">Lucide</a> icon name</td>
+<td>an icon before the label, or alone in a circle</td>
+</tr>
+
+<tr>
+<td><code>badge</code></td>
+<td>text (or a number)</td>
+<td>a very short text in a small pill under the label: <code>7/10</code></td>
+</tr>
+
+<tr>
+<td><code>label_color</code></td>
+<td><code>&quot;#rrggbb&quot;</code></td>
+<td>the colour of the icon and the badge; the text stays dark so it always reads well</td>
+</tr>
+</tbody>
+</table>
+<p>How high a label floats:</p>
+
+<table>
+<thead>
+<tr>
+<th>Shape</th>
+<th>Label anchored at</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>box</code></td>
+<td>the top of the box</td>
+</tr>
+
+<tr>
+<td>a mesh of the scene</td>
+<td>its highest point</td>
+</tr>
+
+<tr>
+<td>outline</td>
+<td>over the middle of the outline, at its <code>height</code> (just over the ground when flat)</td>
+</tr>
+
+<tr>
+<td>line</td>
+<td>over its middle point, at its <code>height</code></td>
+</tr>
+
+<tr>
+<td>none</td>
+<td>the entity&rsquo;s position</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="the-header-and-notices">The header and notices</h2>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/overlay-dark.png">
+  <img alt="The header card with a clock and two counters, and four notices under it" src="images/overlay-light.png" width="460">
+</picture>
+</p>
+
+<ul>
+<li><strong>The header</strong>: entities with <code>pinned</code> (a number) are listed in a card at the top-left corner,
+by that number (1 first) instead of above the entity; a badge follows the text after a dot. Such
+entities need no shape. A clock and a few counters fit well there.</li>
+<li><strong>Notices</strong>: events with a <code>notice</code> appear under the header, newest first, for about six
+seconds of the viewer&rsquo;s time, then fade. An event can add an <code>icon</code> and a <code>label_color</code>.</li>
+</ul>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;add&#34;</span><span class="p">,</span> <span class="nt">&#34;entity&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;harbour-clock&#34;</span><span class="p">,</span> <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;label&#34;</span><span class="p">:</span> <span class="s2">&#34;08:25&#34;</span><span class="p">,</span> <span class="nt">&#34;icon&#34;</span><span class="p">:</span> <span class="s2">&#34;clock&#34;</span><span class="p">,</span> <span class="nt">&#34;pinned&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;emit&#34;</span><span class="p">,</span> <span class="nt">&#34;event&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;arrivals&#34;</span><span class="p">,</span> <span class="nt">&#34;data&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;notice&#34;</span><span class="p">:</span> <span class="s2">&#34;Boat 4 moored at the north quay&#34;</span><span class="p">,</span> <span class="nt">&#34;icon&#34;</span><span class="p">:</span> <span class="s2">&#34;anchor&#34;</span><span class="p">}}}</span>
+</code></pre>
+
+<h2 id="on-the-map">On the map</h2>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/map-dark.png">
+  <img alt="The island from straight above, with the same labels, header and notices" src="images/map-light.png" width="520">
+</picture>
+</p>
+
+<p>The overlay is drawn in every view of the viewer: orbiting, walking, and the map (<code>-map</code>, or <code>M</code>).</p>
+
+<h2 id="good-to-know">Good to know</h2>
+
+<ul>
+<li>Property-only changes (a <code>modify</code> with only <code>properties</code>) update the label at once; setting a
+property to <code>null</code> takes it away.</li>
+<li>Captures (<code>-capture</code>) include the overlay.</li>
+<li><code>simulate</code> has no window and ignores the overlay, but its snapshots keep the properties.</li>
+<li>Models should not read the overlay properties: they are for whoever watches the run.</li>
+</ul>

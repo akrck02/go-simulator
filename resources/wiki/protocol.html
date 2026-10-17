@@ -1,0 +1,183 @@
+<h1 id="protocol">📡 Protocol</h1>
+
+<p>You only need this page to write a plugin in a language other than Go (the Go toolkit does all of
+this for you), or to understand what travels between the host and its plugins.</p>
+
+<p>The idea is simple: the host starts the plugin as a program and they talk through the plugin&rsquo;s
+standard input and output, one message at a time. The plugin&rsquo;s standard error is free for its own
+logs. Any language that can read and write bytes can be a plugin. Protocol version: 2 (the host still
+accepts plugins of version 1; see <a href="#contracts">contracts</a>).</p>
+
+<h2 id="frames">Frames</h2>
+
+<p>Every message is a <em>frame</em>: a length, so the reader knows how much to read, a small JSON header,
+and then any binary data. Binary data is only used for the numbers of fields, so that sending a
+grid of a million cells does not mean writing a million numbers as text.</p>
+<pre><code>┌──────────────┬──────────────────────────────────────────────┬──────────────────────────┐
+│ 4 bytes      │ header: JSON of that length                  │ attachments, one after   │
+│ length (LE)  │ {&#34;kind&#34;, &#34;body&#34;, &#34;attachments&#34;: [lengths]}   │ another (raw bytes)      │
+└──────────────┴──────────────────────────────────────────────┴──────────────────────────┘
+</code></pre>
+
+<ul>
+<li>The length is a little-endian unsigned 32-bit integer; headers above 64 MiB are refused (a
+plugin that prints to its standard output by mistake is caught this way).</li>
+<li><code>body</code> is the message&rsquo;s JSON; <code>attachments</code> lists the byte length of every attachment.</li>
+<li>Field values travel as attachments of little-endian float32: one attachment per <code>set_field</code>
+change, in the order those changes appear in the message (in a change set, a snapshot or the
+incoming changes of a step). The JSON of a field patch has no values.</li>
+</ul>
+
+<h2 id="conversation">Conversation</h2>
+
+<p>A conversation always follows the same order: the host asks who the plugin is, tells it which rules
+to set up, gives it the world, and then asks it to step again and again until it says stop.</p>
+
+<p align="center">
+  <img alt="Host and plugin: describe → description, attach → attached once per rule instance, start with the snapshot → changes, then step → changes again and again, and finally stop, after which the plugin exits" src="images/protocol.svg" width="880">
+</p>
+
+<table>
+<thead>
+<tr>
+<th>Host sends</th>
+<th>Body</th>
+<th>Plugin answers</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>describe</code></td>
+<td>—</td>
+<td><code>description</code>: <code>{protocol, name, version, summary, rules: [{name, summary, parameters, reads, writes, publishes, expects}]}</code></td>
+</tr>
+
+<tr>
+<td><code>attach</code></td>
+<td><code>{instance, rule, parameters}</code></td>
+<td><code>attached</code>: <code>{instance}</code></td>
+</tr>
+
+<tr>
+<td><code>start</code></td>
+<td><code>{snapshot: change set}</code></td>
+<td><code>changes</code>: a change set</td>
+</tr>
+
+<tr>
+<td><code>step</code></td>
+<td><code>{stage, time, step, instances, incoming: [changes]}</code></td>
+<td><code>changes</code>: a change set</td>
+</tr>
+
+<tr>
+<td><code>stop</code></td>
+<td>—</td>
+<td>exits</td>
+</tr>
+</tbody>
+</table>
+<p>Any answer can instead be <code>error</code> with <code>{message}</code>; the host stops the simulation with it.</p>
+
+<ul>
+<li><code>attach</code> comes once per rule instance; the same rule can be attached several times.</li>
+<li><code>start</code>&rsquo;s snapshot holds the part of the world the plugin&rsquo;s rules read, as <code>add</code>,
+<code>set_field</code> and <code>set_environment</code> changes, plus the last event of every name it reads.</li>
+<li><code>step</code> gives the stage time after the step (<code>time</code>), how much time it covers (<code>step</code>), the
+instances to run in this order, and the changes other plugins made since the last message
+that the plugin reads.</li>
+</ul>
+
+<p>A rule&rsquo;s <code>parameters</code> are described as <code>{name, type, default, summary}</code> with type <code>number</code>,
+<code>boolean</code>, <code>text</code>, <code>vector</code>, <code>list</code> or <code>map</code>.</p>
+
+<h2 id="contracts">Contracts</h2>
+
+<p>Plugins never talk to each other, so they agree on names: one publishes <code>elevation</code>, another asks
+for <code>elevation</code>. Since version 2 a rule says what it publishes and what it needs, with units, and
+the host compares the rules a rules file attaches <strong>before the first step</strong>. The names are free
+text: nothing has to be registered anywhere.</p>
+<pre><code class="language-json"><span class="s2">&#34;publishes&#34;</span><span class="err">:</span> <span class="p">[</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;elevation&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;field&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;m&#34;</span><span class="p">,</span> <span class="nt">&#34;summary&#34;</span><span class="p">:</span> <span class="s2">&#34;height of the ground&#34;</span><span class="p">},</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;biome&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;field&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;index&#34;</span><span class="p">,</span> <span class="nt">&#34;names&#34;</span><span class="p">:</span> <span class="s2">&#34;biomes&#34;</span><span class="p">},</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;biomes&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;event&#34;</span><span class="p">,</span> <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">[{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;names&#34;</span><span class="p">}]},</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;river&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;kind&#34;</span><span class="p">,</span> <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">[{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;width&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;world&#34;</span><span class="p">}]}</span>
+<span class="p">]</span><span class="err">,</span>
+<span class="s2">&#34;expects&#34;</span><span class="err">:</span> <span class="p">[{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;elevation&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;field&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;m&#34;</span><span class="p">,</span> <span class="nt">&#34;required&#34;</span><span class="p">:</span> <span class="kc">true</span><span class="p">}]</span>
+</code></pre>
+
+<ul>
+<li><code>what</code> is <code>field</code>, <code>kind</code>, <code>event</code> or <code>environment</code>.</li>
+<li><code>unit</code> is one of <code>m</code>, <code>km</code>, <code>m²</code>, <code>km²</code>, <code>mm</code>, <code>°C</code>, <code>m/m</code>, <code>1</code> (a share or a plain number),
+<code>index</code> (a category; <code>names</code> is the event that names the values), <code>world</code> (the scene&rsquo;s world
+units), <code>s</code> or <code>year</code>. Fields need one; properties that are not quantities (a name, a class)
+leave it out. Units are compared as text and never converted.</li>
+<li><code>properties</code> are the properties of a kind&rsquo;s entities or the members of an event&rsquo;s data.</li>
+<li><code>expects</code> says what the rule needs from what it reads; <code>reads</code> still decides what the host
+sends it. <code>required</code> means the rule cannot work without it.</li>
+</ul>
+
+<p>The host refuses to start when:</p>
+
+<ul>
+<li>the same field, property or event member is published in two units;</li>
+<li>a rule expects a unit other than the one published;</li>
+<li>a rule requires something no rule publishes and the initial world does not have;</li>
+<li>a description is malformed (no name, an unknown <code>what</code> or unit, a field without a unit).</li>
+</ul>
+
+<p>It warns, and starts, when a rule reads something only a later rule of the rules file publishes
+(its first step will not have it) and when a field of categories has no event naming them.</p>
+
+<p>A rule that lists names in <code>writes</code> but no <code>publishes</code>, or any rule of a version 1 plugin, is
+not checked: the host says once which plugins those are, and counts their <code>writes</code> as published,
+in no known unit, so what they write is not reported missing.</p>
+
+<h2 id="change-sets">Change sets</h2>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;origin&#34;</span><span class="p">:</span> <span class="s2">&#34;urban&#34;</span><span class="p">,</span> <span class="nt">&#34;stage&#34;</span><span class="p">:</span> <span class="s2">&#34;town&#34;</span><span class="p">,</span> <span class="nt">&#34;time&#34;</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="nt">&#34;changes&#34;</span><span class="p">:</span> <span class="p">[</span> <span class="err">…</span> <span class="p">]}</span>
+</code></pre>
+
+<p>The host fills <code>origin</code> and <code>stage</code>; a plugin sends <code>time</code> and <code>changes</code>.</p>
+
+<h2 id="changes">Changes</h2>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;add&#34;</span><span class="p">,</span> <span class="nt">&#34;entity&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;house-7&#34;</span><span class="p">,</span> <span class="nt">&#34;kind&#34;</span><span class="p">:</span> <span class="s2">&#34;building&#34;</span><span class="p">,</span>
+  <span class="nt">&#34;shape&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;outline&#34;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">]],</span> <span class="nt">&#34;height&#34;</span><span class="p">:</span> <span class="mf">0.008</span><span class="p">,</span> <span class="nt">&#34;batch&#34;</span><span class="p">:</span> <span class="s2">&#34;buildings&#34;</span><span class="p">,</span>
+            <span class="nt">&#34;color&#34;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.48</span><span class="p">,</span> <span class="mf">0.18</span><span class="p">,</span> <span class="mf">0.09</span><span class="p">,</span> <span class="mi">1</span><span class="p">]},</span>
+  <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;use&#34;</span><span class="p">:</span> <span class="s2">&#34;shop&#34;</span><span class="p">,</span> <span class="nt">&#34;floors&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;remove&#34;</span><span class="p">,</span> <span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;house-7&#34;</span><span class="p">}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;modify&#34;</span><span class="p">,</span> <span class="nt">&#34;entity&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;house-7&#34;</span><span class="p">,</span> <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;floors&#34;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="nt">&#34;use&#34;</span><span class="p">:</span> <span class="kc">null</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;set_field&#34;</span><span class="p">,</span> <span class="nt">&#34;field&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;elevation&#34;</span><span class="p">,</span> <span class="nt">&#34;columns&#34;</span><span class="p">:</span> <span class="mi">240</span><span class="p">,</span> <span class="nt">&#34;rows&#34;</span><span class="p">:</span> <span class="mi">180</span><span class="p">,</span>
+  <span class="nt">&#34;extent&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;minimum_x&#34;</span><span class="p">:</span> <span class="mi">-6</span><span class="p">,</span> <span class="nt">&#34;maximum_x&#34;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="nt">&#34;minimum_z&#34;</span><span class="p">:</span> <span class="mf">-4.5</span><span class="p">,</span> <span class="nt">&#34;maximum_z&#34;</span><span class="p">:</span> <span class="mf">4.5</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;set_field&#34;</span><span class="p">,</span> <span class="nt">&#34;field&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;elevation&#34;</span><span class="p">,</span> <span class="nt">&#34;region&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;column&#34;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="nt">&#34;row&#34;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="nt">&#34;columns&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="nt">&#34;rows&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;set_environment&#34;</span><span class="p">,</span> <span class="nt">&#34;environment&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;wind&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;direction&#34;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="nt">&#34;strength&#34;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;emit&#34;</span><span class="p">,</span> <span class="nt">&#34;event&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;indicators&#34;</span><span class="p">,</span> <span class="nt">&#34;data&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;year&#34;</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span> <span class="nt">&#34;inhabitants&#34;</span><span class="p">:</span> <span class="mi">3100</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;clear_area&#34;</span><span class="p">,</span> <span class="nt">&#34;area&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;outlines&#34;</span><span class="p">:</span> <span class="p">[[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]],</span> <span class="nt">&#34;keep&#34;</span><span class="p">:</span> <span class="p">[],</span> <span class="nt">&#34;nodes&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;forest&#34;</span><span class="p">]}}</span>
+</code></pre>
+
+<p><strong>Entity:</strong> <code>id</code>, <code>kind</code>, <code>parent</code>, <code>transform</code> (16 numbers, column-major, as go-renderer),
+<code>shape</code>, <code>properties</code>. In a <code>modify</code>, set members replace; properties merge, and a null removes one.</p>
+
+<p><strong>Shape:</strong> <code>mesh</code>, <code>primitive</code> (<code>box</code>) with <code>size</code> and <code>offset</code>, <code>outline</code>, <code>line</code> with <code>width</code>,
+<code>height</code>, <code>lift</code>, <code>batch</code>, <code>color</code> (linear RGBA), <code>hidden</code>.</p>
+
+<p><strong>Field patch:</strong> <code>name</code>; <code>columns</code>, <code>rows</code> and <code>extent</code> only to create the field; <code>region</code> (a
+rectangle of cells) to set part of it; without a region the values cover the whole field. Values,
+row by row from the smallest z, arrive as the attachment.</p>
+
+<p><strong>Environment:</strong> <code>sun_direction</code>, <code>celestial_pole</code>, <code>cloud_offset</code> (vectors), <code>wind</code>
+(<code>{direction, strength}</code>), <code>tide_angle</code> (radians), <code>snow</code> (<code>{level, blend}</code>), <code>foliage_tint</code>
+(linear RGBA, the alpha is the amount). Every set member replaces the current one.</p>
+
+<h2 id="a-whole-exchange">A whole exchange</h2>
+<pre><code>host  → describe
+plugin→ description {&#34;protocol&#34;: 1, &#34;name&#34;: &#34;coast&#34;, &#34;version&#34;: &#34;0.1.0&#34;, &#34;rules&#34;: [{&#34;name&#34;: &#34;turn_beam&#34;, &#34;reads&#34;: {&#34;kinds&#34;: [&#34;beam&#34;]}}]}
+host  → attach {&#34;instance&#34;: &#34;night/turn_beam&#34;, &#34;rule&#34;: &#34;turn_beam&#34;, &#34;parameters&#34;: {}}
+plugin→ attached {&#34;instance&#34;: &#34;night/turn_beam&#34;}
+host  → start {&#34;snapshot&#34;: {&#34;time&#34;: 0, &#34;changes&#34;: [{&#34;op&#34;: &#34;add&#34;, &#34;entity&#34;: {&#34;id&#34;: &#34;lighthouse-beam&#34;, &#34;kind&#34;: &#34;beam&#34;}}]}}
+plugin→ changes {&#34;time&#34;: 0, &#34;changes&#34;: []}
+host  → step {&#34;stage&#34;: &#34;night&#34;, &#34;time&#34;: 0.016, &#34;step&#34;: 0.016, &#34;instances&#34;: [&#34;night/turn_beam&#34;]}
+plugin→ changes {&#34;time&#34;: 0.016, &#34;changes&#34;: [{&#34;op&#34;: &#34;modify&#34;, &#34;entity&#34;: {&#34;id&#34;: &#34;lighthouse-beam&#34;, &#34;transform&#34;: [ … ]}}]}
+…
+host  → stop
+</code></pre>

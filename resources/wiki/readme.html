@@ -1,0 +1,87 @@
+<h1 id="go-simulator-documentation">📚 go-simulator documentation</h1>
+
+<p><img src="./images/chain.jpg" alt="Four simulators on the same made-up island: its relief, its climate, its vegetation after 200 years and a town after 100" /></p>
+
+<p><em>Four simulators taking turns on the same made-up island: the terrain gives the ground, the climate
+works out heat, rain and biomes from it, the flora grows forests where they fit, and a town grows on
+the plain. None of them knows the others: they only share the world.</em></p>
+
+<p>go-simulator is the engine those simulators share. It keeps the world, moves the clock forward and
+passes each simulator what it needs. The simulators themselves are <strong>plugins</strong>: small separate
+programs, in any language, that you can mix like building blocks.</p>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Page</th>
+<th>What is in it</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>🏴‍☠️</td>
+<td><a href="./quest">The quest</a></td>
+<td>Bring a harbour to life in 6 levels: a rules file, a plugin of your own, entities, events, objectives, two plugins together.</td>
+</tr>
+
+<tr>
+<td>🏛️</td>
+<td><a href="./architecture">Architecture</a></td>
+<td>How it all fits together: the world, the seven changes, one step from start to end, interests, events, clocks and the packages.</td>
+</tr>
+
+<tr>
+<td>📜</td>
+<td><a href="./rules-files">Rules files</a></td>
+<td>Setting up a simulation: every key, with includes, anchors and objectives, and a rules file&rsquo;s life.</td>
+</tr>
+
+<tr>
+<td>▶️</td>
+<td><a href="./running">Running</a></td>
+<td><code>simulate</code> and <code>simulator</code>, with or without a window, the files they write and the bridge.</td>
+</tr>
+
+<tr>
+<td>🏷️</td>
+<td><a href="./overlay">Labels, header and notices</a></td>
+<td>The words the live viewer writes over the scene, with pictures.</td>
+</tr>
+
+<tr>
+<td>🔌</td>
+<td><a href="./writing-plugins">Writing plugins</a></td>
+<td>A simulator of your own: the Go toolkit, testing, and other languages.</td>
+</tr>
+
+<tr>
+<td>📖</td>
+<td><a href="./vocabulary">Vocabulary and conditions</a></td>
+<td>The names plugins share, their units, and the little condition language.</td>
+</tr>
+
+<tr>
+<td>📡</td>
+<td><a href="./protocol">Protocol</a></td>
+<td>Talking to the host from another language: frames, messages and the JSON of every change.</td>
+</tr>
+</tbody>
+</table>
+<p>New here? Start with the <a href="../README.md">project README</a>, then <a href="./architecture">Architecture</a>.</p>
+
+<p>Plugins that exist today: <a href="https://github.com/akrck02/go-simulator-terrain" target="_blank">terrain</a>, <a href="https://github.com/akrck02/go-simulator-climate" target="_blank">climate</a>,
+<a href="https://github.com/akrck02/go-simulator-flora" target="_blank">flora</a>, <a href="https://github.com/akrck02/go-simulator-urban" target="_blank">urban</a> and
+<a href="https://github.com/akrck02/go-simulator-motion" target="_blank">motion</a>.</p>
+
+<h2 id="not-done-yet">🚧 Not done yet</h2>
+
+<ul>
+<li>The bridge does not draw fields yet: a scene builder can turn them into terrain or vegetation.</li>
+<li>Ground shapes take their height from the scene&rsquo;s walkable ground; the first time, the renderer
+builds its ground index, which can take a few seconds on a large terrain.</li>
+<li>Removed meshes leave the scene, but go-renderer has no call yet to free their GPU memory.</li>
+<li>Plugins resolve go-renderer through this module&rsquo;s requirements, so a plugin&rsquo;s <code>go.mod</code> needs the
+same <code>replace</code> during development.</li>
+</ul>

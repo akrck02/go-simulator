@@ -1,0 +1,230 @@
+<h1 id="vocabulary-and-conditions">📖 Vocabulary and conditions</h1>
+
+<p>Plugins never talk to each other, so they need to agree on names. If the terrain calls the height
+of the ground <code>elevation</code> and the climate looks for <code>elevation</code>, they work together without knowing
+the other exists. This page lists those shared names, their units, and the little language used
+everywhere to say &ldquo;when does this apply&rdquo;.</p>
+
+<h2 id="units">Units</h2>
+
+<p>Positions and the sizes of shapes are in <strong>world units</strong>, the unit of the scene, on the ground
+plane (x east, z south) with y up: they are what gets drawn. <strong>Fields and properties are data</strong>,
+in the physical units written next to their names, so models read them without knowing the scale
+of the scene. Plugins that need metres from world units take a <code>metres_per_unit</code> parameter (1000
+for scenes in kilometres).</p>
+
+<h2 id="shared-names">Shared names</h2>
+
+<p>Defined in <code>world/vocabulary.go</code>. Names outside the vocabulary are allowed, but a name another
+plugin may want to read belongs here.</p>
+
+<p><strong>Fields</strong></p>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Meaning</th>
+<th>Unit</th>
+<th>Written by</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>elevation</code></td>
+<td>height of the ground</td>
+<td>m</td>
+<td>terrain</td>
+</tr>
+
+<tr>
+<td><code>slope</code></td>
+<td>steepness</td>
+<td>rise over run</td>
+<td>terrain</td>
+</tr>
+
+<tr>
+<td><code>drainage_area</code></td>
+<td>ground that drains through each cell (0 on the sea)</td>
+<td>km²</td>
+<td>terrain (<code>erosion</code>)</td>
+</tr>
+
+<tr>
+<td><code>water_depth</code></td>
+<td>water over the ground</td>
+<td>m (0 = dry)</td>
+<td>—</td>
+</tr>
+
+<tr>
+<td><code>temperature</code></td>
+<td>mean yearly temperature</td>
+<td>°C</td>
+<td>climate</td>
+</tr>
+
+<tr>
+<td><code>precipitation</code></td>
+<td>yearly rain and snow</td>
+<td>mm</td>
+<td>climate</td>
+</tr>
+
+<tr>
+<td><code>biome</code></td>
+<td>index into the names of the <code>biomes</code> event, −1 for the sea</td>
+<td>—</td>
+<td>climate</td>
+</tr>
+
+<tr>
+<td><code>vegetation</code></td>
+<td>index into the names of the <code>vegetation</code> event, −1 for bare ground</td>
+<td>—</td>
+<td>flora</td>
+</tr>
+
+<tr>
+<td><code>tree_cover</code>, <code>shrub_cover</code>, <code>herb_cover</code></td>
+<td>share of the ground under each layer</td>
+<td>0–1</td>
+<td>flora</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Kinds</strong></p>
+
+<p><code>street</code> (a line with a width; <code>class</code> says which), <code>parcel</code> (a plot), <code>building</code> (a volume),
+<code>wall</code>, <code>gate</code>, <code>square</code>, <code>bridge</code>, <code>river</code>, <code>tree</code> (its <code>species</code>), <code>anchor</code>.</p>
+
+<p><strong>Properties</strong></p>
+
+<p><code>year</code> (when it appeared, in the stage&rsquo;s clock), <code>use</code> (<code>housing</code>, <code>shop</code>, <code>workshop</code>…),
+<code>floors</code>, <code>class</code>, <code>sector</code>, <code>species</code>, <code>anchor</code> (true on anchors), <code>role</code> (what an anchor means).</p>
+
+<p><strong>Overlay properties</strong></p>
+
+<p>Any entity can carry a few words for whoever watches the run. The live viewer
+(<a href="./overlay">labels, header and notices</a>) draws them over the 3D scene; models should not read
+them. All are optional, and setting one to <code>null</code> takes it away.</p>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Value</th>
+<th>Shown as</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>label</code></td>
+<td>text</td>
+<td>a short text in a light pill above the entity</td>
+</tr>
+
+<tr>
+<td><code>icon</code></td>
+<td>text: a <a href="https://lucide.dev/icons" target="_blank">Lucide</a> icon name</td>
+<td>an icon before the label, or alone in a circle</td>
+</tr>
+
+<tr>
+<td><code>badge</code></td>
+<td>text (or a number)</td>
+<td>a very short text in a small pill under the label: <code>7/10</code></td>
+</tr>
+
+<tr>
+<td><code>label_color</code></td>
+<td><code>&quot;#rrggbb&quot;</code></td>
+<td>the colour of the icon and the badge; the text stays dark so it always reads well</td>
+</tr>
+
+<tr>
+<td><code>pinned</code></td>
+<td>a number</td>
+<td>the label goes to the header, top-left, as that line (1 first) instead of above the entity; such entities need no shape</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;add&#34;</span><span class="p">,</span> <span class="nt">&#34;entity&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;ferry&#34;</span><span class="p">,</span> <span class="nt">&#34;kind&#34;</span><span class="p">:</span> <span class="s2">&#34;boat&#34;</span><span class="p">,</span> <span class="nt">&#34;shape&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;primitive&#34;</span><span class="p">:</span> <span class="s2">&#34;box&#34;</span><span class="p">,</span> <span class="nt">&#34;size&#34;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">]},</span>
+  <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;label&#34;</span><span class="p">:</span> <span class="s2">&#34;Ferry → quay&#34;</span><span class="p">,</span> <span class="nt">&#34;icon&#34;</span><span class="p">:</span> <span class="s2">&#34;ship&#34;</span><span class="p">,</span> <span class="nt">&#34;badge&#34;</span><span class="p">:</span> <span class="s2">&#34;12/40&#34;</span><span class="p">,</span> <span class="nt">&#34;label_color&#34;</span><span class="p">:</span> <span class="s2">&#34;#2563eb&#34;</span><span class="p">}}}</span>
+<span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;add&#34;</span><span class="p">,</span> <span class="nt">&#34;entity&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;harbour-clock&#34;</span><span class="p">,</span> <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;label&#34;</span><span class="p">:</span> <span class="s2">&#34;08:25&#34;</span><span class="p">,</span> <span class="nt">&#34;icon&#34;</span><span class="p">:</span> <span class="s2">&#34;clock&#34;</span><span class="p">,</span> <span class="nt">&#34;pinned&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}}}</span>
+</code></pre>
+
+<p><strong>Events</strong></p>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Data</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>biomes</code></td>
+<td><code>names</code>: the values of the <code>biome</code> field</td>
+</tr>
+
+<tr>
+<td><code>vegetation</code></td>
+<td><code>names</code>, <code>labels</code>, <code>forms</code>, <code>heights</code>: the values of the <code>vegetation</code> field</td>
+</tr>
+</tbody>
+</table>
+<p>Events that name the categories of a field carry <code>{&quot;names&quot;: […]}</code>.</p>
+
+<p>Any event can also carry a <strong>notice</strong>, a short message for whoever watches: <code>notice</code> (the text)
+and, optionally, <code>icon</code> (a Lucide icon name) and <code>label_color</code>. The live viewer shows it under its
+header for a few seconds, newest first, then fades it out:</p>
+<pre><code class="language-json"><span class="p">{</span><span class="nt">&#34;op&#34;</span><span class="p">:</span> <span class="s2">&#34;emit&#34;</span><span class="p">,</span> <span class="nt">&#34;event&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;arrivals&#34;</span><span class="p">,</span> <span class="nt">&#34;data&#34;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&#34;notice&#34;</span><span class="p">:</span> <span class="s2">&#34;Boat 4 moored at the north quay&#34;</span><span class="p">,</span> <span class="nt">&#34;icon&#34;</span><span class="p">:</span> <span class="s2">&#34;anchor&#34;</span><span class="p">}}}</span>
+</code></pre>
+
+<h2 id="conditions">Conditions</h2>
+
+<p>&ldquo;Buildings with three or more floors&rdquo;, &ldquo;cells colder than 7 °C&rdquo;, &ldquo;shops or workshops&rdquo;: many parts
+of the system need to say when something applies, and they all use the same small language, in objectives, habitats, biome rules, managed
+land and scene styles (package <code>conditions</code>). A condition is a map from a fact to what it must
+be; every entry must hold.</p>
+
+<table>
+<thead>
+<tr>
+<th>Written</th>
+<th>Holds when the fact is</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>kind: building</code></td>
+<td>equal to the value (numbers by value, the rest by text)</td>
+</tr>
+
+<tr>
+<td><code>use: [shop, workshop]</code></td>
+<td>one of the values</td>
+</tr>
+
+<tr>
+<td><code>floors: {min: 2, max: 3}</code></td>
+<td>a number in the range (either end may be left out)</td>
+</tr>
+
+<tr>
+<td><code>river: true</code></td>
+<td>that yes/no value</td>
+</tr>
+</tbody>
+</table>
+<p>A fact that does not exist never holds. For entities, the facts are <code>kind</code> and their properties;
+for cells of a grid, the plugin says which facts it offers (the flora: <code>temperature</code>,
+<code>precipitation</code>, <code>elevation</code>, <code>slope</code>, <code>biome</code> and <code>distance_to_&lt;anchor&gt;</code>). Rules files are
+checked before a run: ranges take only <code>min</code> and <code>max</code>, and their bounds must be numbers.</p>

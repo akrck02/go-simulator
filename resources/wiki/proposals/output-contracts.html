@@ -1,0 +1,173 @@
+<h1 id="proposal-plugins-describe-what-they-publish">Proposal: plugins describe what they publish</h1>
+
+<p>Status: <strong>step 1 built</strong> (protocol 2, toolkit helpers, the host&rsquo;s checks; see <code>docs/protocol.md</code>). Unit
+mismatches are errors from the start. Steps 2 and 3 are next.</p>
+
+<h2 id="the-problem">The problem</h2>
+
+<p>Plugins never talk to each other, so they agree on names: the terrain publishes <code>elevation</code>, the
+climate asks for <code>elevation</code>, and neither knows the other exists. Today that agreement lives in
+two places that do not scale:</p>
+
+<ul>
+<li><strong><code>world/vocabulary.go</code></strong>, Go constants in the host&rsquo;s own module. The host does not need them
+(outside <code>world/</code>, it only uses the names of anchors, which it makes itself), but having them
+there suggests that a new simulator has to change go-simulator to add a name, and plugins in
+other languages cannot use them at all. It also goes against the engine&rsquo;s own rule: no plugin&rsquo;s
+vocabulary (cities, plants, rain…) in <code>world</code>, <code>host</code> or <code>protocol</code>.</li>
+<li><strong><code>Writes</code> in the <code>describe</code> message</strong>, a list of names the host never reads. It mixes kinds
+and fields (<code>[&quot;elevation&quot;, &quot;slope&quot;, &quot;river&quot;]</code>) without saying which is which, and it carries no
+units, so nothing can tell that one plugin writes <code>elevation</code> in metres and another reads it as
+feet.</li>
+</ul>
+
+<p>The result: a contract between two plugins is only checked when the simulation gives strange
+results.</p>
+
+<h2 id="the-idea">The idea</h2>
+
+<p>Every plugin already introduces itself to the host with <code>describe</code>. Let that description carry
+the contract of what each rule publishes, and what it expects of what it reads. The host compares
+the descriptions of the plugins of a rules file when they start, before the first step, and the
+vocabulary becomes a page generated from the descriptions of the plugins we know, not code in the
+host.</p>
+
+<p>The names stay free text, as they are now: nothing has to be registered anywhere.</p>
+
+<h2 id="the-protocol">The protocol</h2>
+
+<p>Two new optional members of <code>RuleDescription</code>. The JSON is additive (a plugin that does not send
+them still decodes), but a protocol change is a version change: the protocol goes to <strong>version
+2</strong>, <code>docs/protocol.md</code> describes the new members and every plugin moves with it. For the move,
+the host accepts plugins of version 1 and 2 and treats version 1 as &ldquo;outputs not described&rdquo;.</p>
+<pre><code class="language-go"><span class="kd">type</span> <span class="nx">RuleDescription</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="c1">// … as now; Writes stays for older hosts</span>
+	<span class="nx">Publishes</span> <span class="p">[]</span><span class="nx">OutputDescription</span> <span class="s">`json:&#34;publishes,omitempty&#34;`</span>
+	<span class="nx">Expects</span>   <span class="p">[]</span><span class="nx">InputDescription</span>  <span class="s">`json:&#34;expects,omitempty&#34;`</span>
+<span class="p">}</span>
+
+<span class="c1">// OutputDescription is one thing a rule publishes.</span>
+<span class="kd">type</span> <span class="nx">OutputDescription</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">Name</span>       <span class="kt">string</span>              <span class="s">`json:&#34;name&#34;`</span>                 <span class="c1">// &#34;drainage_area&#34;, &#34;river&#34;, &#34;biomes&#34;</span>
+	<span class="nx">What</span>       <span class="kt">string</span>              <span class="s">`json:&#34;what&#34;`</span>                 <span class="c1">// &#34;field&#34;, &#34;kind&#34;, &#34;event&#34;, &#34;environment&#34;</span>
+	<span class="nx">Unit</span>       <span class="kt">string</span>              <span class="s">`json:&#34;unit,omitempty&#34;`</span>       <span class="c1">// fields: &#34;m&#34;, &#34;km²&#34;, &#34;°C&#34;, &#34;1&#34;, &#34;index&#34;</span>
+	<span class="nx">Names</span>      <span class="kt">string</span>              <span class="s">`json:&#34;names,omitempty&#34;`</span>      <span class="c1">// &#34;index&#34; fields: the event that names their values</span>
+	<span class="nx">Summary</span>    <span class="kt">string</span>              <span class="s">`json:&#34;summary,omitempty&#34;`</span>
+	<span class="nx">Properties</span> <span class="p">[]</span><span class="nx">OutputDescription</span> <span class="s">`json:&#34;properties,omitempty&#34;`</span> <span class="c1">// kinds and events: their members, with units</span>
+<span class="p">}</span>
+
+<span class="c1">// InputDescription is one thing a rule reads, and what it needs from it.</span>
+<span class="kd">type</span> <span class="nx">InputDescription</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">Name</span>     <span class="kt">string</span> <span class="s">`json:&#34;name&#34;`</span>
+	<span class="nx">What</span>     <span class="kt">string</span> <span class="s">`json:&#34;what&#34;`</span>
+	<span class="nx">Unit</span>     <span class="kt">string</span> <span class="s">`json:&#34;unit,omitempty&#34;`</span>
+	<span class="nx">Required</span> <span class="kt">bool</span>   <span class="s">`json:&#34;required,omitempty&#34;`</span> <span class="c1">// the rule cannot work without it</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>What the terrain&rsquo;s erosion rule would say:</p>
+<pre><code class="language-json"><span class="s2">&#34;publishes&#34;</span><span class="err">:</span> <span class="p">[</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;elevation&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;field&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;m&#34;</span><span class="p">,</span> <span class="nt">&#34;summary&#34;</span><span class="p">:</span> <span class="s2">&#34;height of the ground&#34;</span><span class="p">},</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;drainage_area&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;field&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;km²&#34;</span><span class="p">,</span> <span class="nt">&#34;summary&#34;</span><span class="p">:</span> <span class="s2">&#34;ground draining through each cell&#34;</span><span class="p">},</span>
+  <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;river&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;kind&#34;</span><span class="p">,</span> <span class="nt">&#34;summary&#34;</span><span class="p">:</span> <span class="s2">&#34;a line with a width&#34;</span><span class="p">,</span>
+   <span class="nt">&#34;properties&#34;</span><span class="p">:</span> <span class="p">[{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;width&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;world&#34;</span><span class="p">},</span> <span class="p">{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;drainage_area&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;km²&#34;</span><span class="p">}]}</span>
+<span class="p">]</span><span class="err">,</span>
+<span class="s2">&#34;expects&#34;</span><span class="err">:</span> <span class="p">[{</span><span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;elevation&#34;</span><span class="p">,</span> <span class="nt">&#34;what&#34;</span><span class="p">:</span> <span class="s2">&#34;field&#34;</span><span class="p">,</span> <span class="nt">&#34;unit&#34;</span><span class="p">:</span> <span class="s2">&#34;m&#34;</span><span class="p">,</span> <span class="nt">&#34;required&#34;</span><span class="p">:</span> <span class="kc">true</span><span class="p">}]</span>
+</code></pre>
+
+<p><code>Reads</code> stays what it is: the interest that decides what the host forwards. <code>Expects</code> is what the
+rule needs from it, which the host can check.</p>
+
+<p><strong>Units</strong> are compared as text, from a short list written in the protocol page (SI units and the
+ones the scenes use: <code>m</code>, <code>km</code>, <code>km²</code>, <code>mm</code>, <code>°C</code>, <code>m/m</code>, <code>1</code> for shares, <code>index</code> for categories,
+<code>world</code> for world units). The host never converts: a mismatch is an error to fix in a plugin, not
+something to guess.</p>
+
+<h2 id="what-the-host-checks">What the host checks</h2>
+
+<p>When it builds the engine, after every plugin has described itself and before it starts them,
+with the rules in the order of the rules file:</p>
+
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>two rules publish the same field, kind property or event member with different units</td>
+<td>error</td>
+</tr>
+
+<tr>
+<td>a rule expects a unit other than the one the rule publishing it gives</td>
+<td>error</td>
+</tr>
+
+<tr>
+<td>a rule requires something no rule publishes and the initial world does not have</td>
+<td>error</td>
+</tr>
+
+<tr>
+<td>a rule reads something only a later plugin publishes, so its first step will not have it</td>
+<td>warning</td>
+</tr>
+
+<tr>
+<td>an <code>index</code> field without the event that names its values</td>
+<td>warning</td>
+</tr>
+</tbody>
+</table>
+<p>Plugins that do not describe their outputs are not checked; the host says once which ones they
+are, so a rules file can tell what is checked and what is not.</p>
+
+<h2 id="the-vocabulary">The vocabulary</h2>
+
+<p><code>docs/vocabulary.md</code> becomes a page generated by a small command (<code>cmd/vocabulary</code>) from the
+descriptions of the plugins a rules file names: every name, what it is, its unit and who
+publishes and reads it. The same descriptions already give each plugin&rsquo;s <code>docs/rules.md</code>, so both
+can come from one tool, and the hand-made copies in every repository stop drifting.</p>
+
+<p>In <code>world/vocabulary.go</code> remain only the names the host itself handles (anchors: <code>anchor</code>, <code>role</code>
+and the kind <code>anchor</code>). The other constants move to the generated page; a plugin names its
+outputs as its own constants, as the terrain plugin already does with <code>drainage_area</code>.</p>
+
+<h2 id="the-toolkit">The toolkit</h2>
+
+<p>In Go, the <code>plugin</code> package gets helpers so describing an output is one line:</p>
+<pre><code class="language-go"><span class="nx">Publishes</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">OutputDescription</span><span class="p">{</span>
+	<span class="nx">plugin</span><span class="p">.</span><span class="nf">Field</span><span class="p">(</span><span class="s">&#34;elevation&#34;</span><span class="p">,</span> <span class="s">&#34;m&#34;</span><span class="p">,</span> <span class="s">&#34;height of the ground&#34;</span><span class="p">),</span>
+	<span class="nx">plugin</span><span class="p">.</span><span class="nf">Kind</span><span class="p">(</span><span class="s">&#34;river&#34;</span><span class="p">,</span> <span class="s">&#34;a line with a width&#34;</span><span class="p">,</span> <span class="nx">plugin</span><span class="p">.</span><span class="nf">Property</span><span class="p">(</span><span class="s">&#34;width&#34;</span><span class="p">,</span> <span class="s">&#34;world&#34;</span><span class="p">)),</span>
+<span class="p">},</span>
+<span class="nx">Expects</span><span class="p">:</span> <span class="p">[]</span><span class="nx">protocol</span><span class="p">.</span><span class="nx">InputDescription</span><span class="p">{</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">NeedsField</span><span class="p">(</span><span class="s">&#34;elevation&#34;</span><span class="p">,</span> <span class="s">&#34;m&#34;</span><span class="p">)},</span>
+</code></pre>
+
+<h2 id="steps">Steps</h2>
+
+<ol>
+<li>Protocol members, toolkit helpers and the host&rsquo;s checks, with tests; the protocol page
+explains them and lists the units.</li>
+<li>The plugins describe their outputs: terrain, climate, flora, urban, motion. Each one is a small
+change in its own repository.</li>
+<li><code>cmd/vocabulary</code> and the generated <code>rules.md</code> of every plugin; <code>world/vocabulary.go</code> keeps only
+the anchors.</li>
+</ol>
+
+<p>Each step works on its own: a host with step 1 still runs plugins of version 1, and a plugin of
+version 2 still runs on such a host. Once every plugin is at version 2, the host can stop
+accepting version 1.</p>
+
+<h2 id="open-questions">Open questions</h2>
+
+<ul>
+<li><del>Should a unit mismatch be an error from the start?</del> Decided: yes, an error from the start.</li>
+<li>Is <code>world</code> enough for shapes, or should a kind say that its lines and outlines are on the ground
+plane (x, z)?</li>
+<li>Do events need versions (<code>biomes</code> with <code>names</code> today, maybe <code>colors</code> tomorrow), or are optional
+members enough?</li>
+</ul>

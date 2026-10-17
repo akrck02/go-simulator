@@ -1,0 +1,143 @@
+<h1 id="running">▶️ Running</h1>
+
+<p>There are two ways to run a simulation. <strong>Without a window</strong>, it runs as fast as it can and writes
+files: snapshots to draw maps from, every event, and whether the objectives were met. <strong>Live</strong>, it
+opens the 3D scene and you watch the simulation happen, with keys to pause, speed up or switch
+rules on and off.</p>
+
+<h2 id="without-a-window-simulate">Without a window: simulate</h2>
+<pre><code class="language-bash">go run ./cmd/simulate -rules rules.yaml -output results/
+go run ./cmd/simulate -rules rules.yaml -scene scene.glb -output results/ -objectives warn
+</code></pre>
+
+<p>It runs the stepped stages, one step each in turn, to the end of their clocks; real-time stages
+do not run. <code>-scene</code> starts the world from a glTF scene (its nodes become entities).
+<code>-objectives fail</code> (default) makes a missed objective an error; <code>warn</code> only reports it.</p>
+
+<p>It writes, in the output folder:</p>
+
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Content</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>&lt;stage&gt; &lt;time&gt;.geojson</code></td>
+<td>Every entity with a ground shape (polygons, line strings, points at their position), with its id, kind, parent and properties, and the shape&rsquo;s height and width; coordinates <code>[x, z]</code></td>
+</tr>
+
+<tr>
+<td><code>&lt;stage&gt; &lt;time&gt; &lt;field&gt;.json</code> + <code>.f32</code></td>
+<td>Every field (or the stage&rsquo;s <code>snapshot_fields</code>) as a grid: a JSON header (<code>columns</code>, <code>rows</code>, <code>cell</code>, <code>extent</code>, <code>west</code>, <code>north</code>, <code>axes: east-south</code>) and little-endian float32 values, row by row; the relief format of go-scene-builder</td>
+</tr>
+
+<tr>
+<td><code>events.jsonl</code></td>
+<td>Every event, one JSON per line, with its origin, stage and time</td>
+</tr>
+
+<tr>
+<td><code>objectives.json</code></td>
+<td>Every objective: when it was checked, the value found, whether it was reached and what was expected</td>
+</tr>
+</tbody>
+</table>
+<p>Snapshots are taken at the times each stage lists in <code>snapshots</code>, after the step that reaches
+them.</p>
+
+<h2 id="live-simulator">Live: simulator</h2>
+<pre><code class="language-bash">go run ./cmd/simulator -rules rules.yaml scene.glb
+go run ./cmd/simulator -rules rules.yaml -advance <span class="m">80</span> -capture frame.png scene.glb
+</code></pre>
+
+<p>It opens the scene with go-renderer&rsquo;s viewer and runs the plugins on it. It takes every viewer
+option (<code>-walk</code>, <code>-night</code>, <code>-look-at</code>, <code>-capture</code>, <code>-benchmark</code>…; see
+<a href="https://github.com/akrck02/go-renderer/blob/feature/escenas-3d/docs/viewer.md" target="_blank">go-renderer&rsquo;s viewer</a>) and:</p>
+
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Effect</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>-rules file</code></td>
+<td>The rules file (without it, the scene is only shown)</td>
+</tr>
+
+<tr>
+<td><code>-advance N</code></td>
+<td>Steps every stepped stage N times before showing, to start or capture further on</td>
+</tr>
+</tbody>
+</table>
+
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><code>P</code></td>
+<td>Pause and resume</td>
+</tr>
+
+<tr>
+<td><code>,</code> <code>.</code></td>
+<td>Halve or double the speed of time</td>
+</tr>
+
+<tr>
+<td>a rule&rsquo;s <code>toggle_key</code></td>
+<td>Switch that rule on and off</td>
+</tr>
+</tbody>
+</table>
+
+<h3 id="what-the-viewer-shows">What the viewer shows</h3>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/hero-dark.png">
+  <img alt="The live viewer: a made-up island with labelled boats, and a header with a clock, counters and notices" src="images/hero-light.png" width="720">
+</picture>
+</p>
+
+<p>Besides the scene, the viewer writes a few words over it, from the
+<a href="./vocabulary">overlay properties</a> of the entities: <strong>labels</strong> above them, a
+<strong>header</strong> in the top-left corner and <strong>notices</strong> under it. Captures (<code>-capture</code>) include them.
+See <a href="./overlay">labels, header and notices</a>.</p>
+
+<h3 id="the-bridge">The bridge</h3>
+
+<p>The bridge is the translator between the neutral world and the 3D scene. It builds the initial world from the scene (every node becomes an entity, with its glTF
+extras as properties, and the scene&rsquo;s environment comes along) and turns every change set into
+scene changes:</p>
+
+<ul>
+<li>ground shapes become meshes draped on the terrain (the scene&rsquo;s walkable ground), batched by
+<code>batch</code>; flat ones float <code>lift</code> over the ground and are pulled towards the camera;</li>
+<li>with a <code>scene_style</code>, the batches its rules match are built by go-scene-builder, with roofs,
+facades, gates and instanced models;</li>
+<li><code>clear_area</code> removes the triangles of the named nodes whose middle falls inside the outlines,
+and the instances standing there, sparing the holes;</li>
+<li>the environment moves the sun, wind, clouds, tide, snow line and foliage tint;</li>
+<li>the overlay properties become labels and header lines, and events with a <code>notice</code> become
+notices (see <a href="./overlay">labels, header and notices</a>).</li>
+</ul>
+
+<h2 id="known-limits">Known limits</h2>
+
+<p>What the bridge does not do yet is listed in the documentation index, under
+<a href="./readme">not done yet</a>.</p>
