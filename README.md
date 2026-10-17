@@ -126,6 +126,7 @@ plugins that read that part of the world, and the bridge shows them in the scene
 
 | | |
 |---|---|
+| [The quest](docs/quest.md) | Bring a harbour to life in 6 levels, writing a plugin of your own. |
 | [Architecture](docs/architecture.md) | The world, the seven changes, one step from start to end, interests, events and clocks. |
 | [Rules files](docs/rules-files.md) | Every key, with includes, anchors and objectives. |
 | [Running](docs/running.md) | `simulate`, `simulator`, the files they write and the bridge. |
