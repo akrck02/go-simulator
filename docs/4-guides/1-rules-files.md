@@ -9,7 +9,7 @@ your home folder, and plugins are told where the rules file lives (`GO_SIMULATOR
 so they find your files the same way.
 
 <p align="center">
-  <img alt="A rules file's life: 1 read, with includes merged; 2 checked, every mistake at once; 3 plugins started and described, every rule attached; 4 anchors added; 5 each plugin started with what it reads; 6 the stages run on their clocks; 7 results: objectives, snapshots and events, or the live scene" src="images/rules-life.svg" width="880">
+  <img alt="A rules file's life: 1 read, with includes merged; 2 checked, every mistake at once; 3 plugins started and described, every rule attached; 4 anchors added; 5 each plugin started with what it reads; 6 the stages run on their clocks; 7 results: objectives, snapshots and events, or the live scene" src="../images/rules-life.svg" width="880">
 </p>
 
 ## A complete example
@@ -139,7 +139,7 @@ only reports them). An objective whose time falls outside its stage's clock coun
 |---|---|
 | `name` | For people |
 | `at` | Stage time at which it is checked |
-| `count` | A [condition](vocabulary.md#conditions) over entities: it counts those that match |
+| `count` | A [condition](../5-reference/1-vocabulary-and-conditions.md#conditions) over entities: it counts those that match |
 | `event` + `value` | Reads a number from the data of the last event of that name |
 | `min`, `max` | Bounds |
 | `near` + `tolerance` | Within a share of a value (0.05 = ±5 %) |

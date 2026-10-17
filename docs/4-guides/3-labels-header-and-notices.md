@@ -2,14 +2,14 @@
 
 Besides the scene, the live viewer (`cmd/simulator`) writes a few words over it: what a boat
 carries, what time it is in the simulation, what just happened. Plugins do not draw any of it.
-They set a few [overlay properties](vocabulary.md#shared-names) on their entities and a `notice`
-on their events, and the [bridge](running.md#the-bridge) turns them into labels, a header and
+They set a few [overlay properties](../5-reference/1-vocabulary-and-conditions.md#shared-names) on their entities and a `notice`
+on their events, and the [bridge](2-running.md#the-bridge) turns them into labels, a header and
 notices.
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/hero-dark.png">
-  <img alt="A made-up island with three labelled boats, a labelled building, and a header with a clock, two counters and four notices" src="images/hero-light.png" width="720">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/hero-dark.png">
+  <img alt="A made-up island with three labelled boats, a labelled building, and a header with a clock, two counters and four notices" src="../images/hero-light.png" width="720">
 </picture>
 </p>
 
@@ -20,8 +20,8 @@ of go-renderer's made-up sample island and a small made-up plugin that sails thr
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/labels-dark.png">
-  <img alt="A flat market plot and a building, each with a label, an icon and a badge under it" src="images/labels-light.png" width="520">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/labels-dark.png">
+  <img alt="A flat market plot and a building, each with a label, an icon and a badge under it" src="../images/labels-light.png" width="520">
 </picture>
 </p>
 
@@ -56,8 +56,8 @@ How high a label floats:
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/overlay-dark.png">
-  <img alt="The header card with a clock and two counters, and four notices under it" src="images/overlay-light.png" width="460">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/overlay-dark.png">
+  <img alt="The header card with a clock and two counters, and four notices under it" src="../images/overlay-light.png" width="460">
 </picture>
 </p>
 
@@ -76,8 +76,8 @@ How high a label floats:
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="images/map-dark.png">
-  <img alt="The island from straight above, with the same labels, header and notices" src="images/map-light.png" width="520">
+  <source media="(prefers-color-scheme: dark)" srcset="../images/map-dark.png">
+  <img alt="The island from straight above, with the same labels, header and notices" src="../images/map-light.png" width="520">
 </picture>
 </p>
 
