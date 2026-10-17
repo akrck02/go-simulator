@@ -1,3 +1,5 @@
+<p align="center"><img alt="" src="images/logo.svg" width="120"></p>
+
 # Welcome to go-simulator 👋
 
 **go-simulator brings scenes to life with simulations**: the sun crossing the sky, boats sailing, towns growing for a century, forests spreading over an island.
