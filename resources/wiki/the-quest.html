@@ -1,6 +1,6 @@
-<h1 id="the-go-simulator-quest">The go-simulator quest</h1>
+<h1 id="the-go-simulator-quest">The Go Simulator quest</h1>
 
-<p>Bring a scene to life, one level at a time. Each level teaches one piece of go-simulator and ends
+<p>Bring a scene to life, one level at a time. Each level teaches one piece of Go Simulator and ends
 with something new happening in the scene.</p>
 
 <p><img src="./images/quest/quest-map.svg" alt="The quest map: a road from START through 6 levels — Stage manager, Clockmaker, Shipwright, Herald, Harbour clerk and Conductor — to a final challenge, Fleet owner" /></p>
@@ -19,7 +19,7 @@ code</strong>, a <strong>checkpoint</strong> to know it works, and an optional <
 <h2 id="before-you-start">Before you start</h2>
 
 <p>You need Go 1.25 and GEOS (<code>sudo apt install libgeos-dev</code>, <code>brew install geos</code>), and a scene. We use
-the village from <a href="https://github.com/akrck02/go-scene-builder/blob/master/docs/2-the-quest.md" target="_blank">go-scene-builder&rsquo;s quest</a>:
+the village from <a href="https://github.com/akrck02/go-scene-builder/blob/master/docs/2-the-quest.md" target="_blank">Go Scene Builder&rsquo;s quest</a>:
 any <code>.glb</code> works, but the coordinates below fit that village (scene units are kilometres; the river
 runs east to west about 25 metres south of the centre).</p>
 
@@ -78,7 +78,7 @@ go run ../go-simulator/cmd/simulate -rules rules.yaml -scene village.glb -output
 <h4 id="the-idea">The idea</h4>
 
 <p>A theatre&rsquo;s <strong>stage manager</strong> does not act: they follow a <strong>script</strong> that says who comes on, when,
-and what they do. go-simulator is the stage manager, the <strong>rules file</strong> is the script, and the
+and what they do. Go Simulator is the stage manager, the <strong>rules file</strong> is the script, and the
 <strong>plugins</strong> are the actors: separate programs, each knowing how to do a few things (<em>rules</em>).</p>
 
 <p>The motion plugin knows how to turn the sun, blow the wind and drift the clouds.</p>

@@ -12,7 +12,7 @@ two places that do not scale:</p>
 <ul>
 <li><strong><code>world/vocabulary.go</code></strong>, Go constants in the host&rsquo;s own module. The host does not need them
 (outside <code>world/</code>, it only uses the names of anchors, which it makes itself), but having them
-there suggests that a new simulator has to change go-simulator to add a name, and plugins in
+there suggests that a new simulator has to change Go Simulator to add a name, and plugins in
 other languages cannot use them at all. It also goes against the engine&rsquo;s own rule: no plugin&rsquo;s
 vocabulary (cities, plants, rain…) in <code>world</code>, <code>host</code> or <code>protocol</code>.</li>
 <li><strong><code>Writes</code> in the <code>describe</code> message</strong>, a list of names the host never reads. It mixes kinds
