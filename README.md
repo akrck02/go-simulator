@@ -4,7 +4,7 @@
 
 # Go simulator
 
-**Simulations for [go-renderer](https://github.com/akrck02/go-renderer) scenes, built from plugins.**
+**Simulations for [Go Renderer](https://github.com/akrck02/go-renderer) scenes, built from plugins.**
 The simulators are separate programs, in any language, that the host starts at runtime. A rules
 file says which to use and what the run must reach; the world they share is plain data.
 
@@ -36,7 +36,7 @@ reviewed it line by line. Treat it as a working draft, not as code I vouch for.
 </picture>
 </p>
 
-<p align="center"><sub>A made-up plugin sails three boats round go-renderer's sample island. Everything written over the scene comes from the entities' properties and the plugin's events.</sub></p>
+<p align="center"><sub>A made-up plugin sails three boats round Go Renderer's sample island. Everything written over the scene comes from the entities' properties and the plugin's events.</sub></p>
 
 ## ✨ What it looks like
 
@@ -114,10 +114,10 @@ During development the renderer and the scene builder are used from the folders 
 ## 🔍 How it works
 
 <p align="center">
-  <img alt="A rules file → the go-simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="docs/images/architecture.svg" width="880">
+  <img alt="A rules file → the Go Simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="docs/images/architecture.svg" width="880">
 </p>
 
-go-renderer draws a scene and knows nothing about simulations; go-simulator holds the world model,
+Go Renderer draws a scene and knows nothing about simulations; Go Simulator holds the world model,
 the change protocol, the host engine, rules files and the renderer bridge; the plugins (terrain,
 climate, flora, urban, motion…) live in their own repositories. Plugins never touch the renderer:
 they read the world and answer with **changes**; the host applies them, forwards them to the
