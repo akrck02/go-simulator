@@ -14,7 +14,7 @@ notices.
 </p>
 
 *The pictures on this page are captures of the viewer (`-capture`), by day and with `-night`,
-of go-renderer's made-up sample island and a small made-up plugin that sails three boats round it.*
+of Go Renderer's made-up sample island and a small made-up plugin that sails three boats round it.*
 
 ## Labels
 

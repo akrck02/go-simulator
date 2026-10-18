@@ -1,12 +1,12 @@
 <p align="center"><img alt="" src="images/logo.svg" width="120"></p>
 
-# Welcome to go-simulator 👋
+# Welcome to Go Simulator 👋
 
-**go-simulator brings scenes to life with simulations**: the sun crossing the sky, boats sailing, towns growing for a century, forests spreading over an island.
+**Go Simulator brings scenes to life with simulations**: the sun crossing the sky, boats sailing, towns growing for a century, forests spreading over an island.
 
 <p align="center"><img alt="Four simulations on one made-up island: its relief, its climate, its vegetation and a town" src="images/chain.jpg" width="720"></p>
 
-Each kind of simulation is a separate small program, a **plugin**: terrain, climate, flora, towns, motion, or one you write. A **rules file** (plain text) says which plugins to use and with which numbers; go-simulator runs them together on one shared world, and shows it live in go-renderer's viewer or writes the results to files.
+Each kind of simulation is a separate small program, a **plugin**: terrain, climate, flora, towns, motion, or one you write. A **rules file** (plain text) says which plugins to use and with which numbers; Go Simulator runs them together on one shared world, and shows it live in Go Renderer's viewer or writes the results to files.
 
 ## Is it for me?
 
@@ -57,8 +57,8 @@ The menu on the left (or the files in `docs/`) follows this order.
 - The bridge does not draw fields yet: a scene builder can turn them into terrain or vegetation.
 - Ground shapes take their height from the scene's walkable ground; the first time, the renderer
   builds its ground index, which can take a few seconds on a large terrain.
-- Removed meshes leave the scene, but go-renderer has no call yet to free their GPU memory.
-- Plugins resolve go-renderer through this module's requirements, so a plugin's `go.mod` needs the
+- Removed meshes leave the scene, but Go Renderer has no call yet to free their GPU memory.
+- Plugins resolve Go Renderer through this module's requirements, so a plugin's `go.mod` needs the
   same `replace` during development.
 
 ## Words you will meet
@@ -75,21 +75,21 @@ The menu on the left (or the files in `docs/`) follows this order.
 
 ## The family
 
-go-simulator is one of a family of small projects that work together:
+Go Simulator is one of a family of small projects that work together:
 
 | Project | What it does |
 |---|---|
-| [go-renderer](https://github.com/akrck02/go-renderer) | draws 3D scenes and flat interfaces |
-| [go-ui](https://github.com/akrck02/go-ui) | buttons, panels and whole applications |
-| [go-ui-android](https://github.com/akrck02/go-ui-android) | Android apps that look like Android's own |
-| [go-sound](https://github.com/akrck02/go-sound) | sound and music |
-| [go-scene-builder](https://github.com/akrck02/go-scene-builder) | 3D scenes from a flat map |
-| **go-simulator** (this one) | simulations that change a scene |
-| [go-simulator-terrain](https://github.com/akrck02/go-simulator-terrain) | ground shaped by rivers |
-| [go-simulator-climate](https://github.com/akrck02/go-simulator-climate) | weather and biomes |
-| [go-simulator-flora](https://github.com/akrck02/go-simulator-flora) | forests that grow |
-| [go-simulator-urban](https://github.com/akrck02/go-simulator-urban) | towns that grow |
-| [go-simulator-motion](https://github.com/akrck02/go-simulator-motion) | a scene that moves |
-| [go-3ds](https://github.com/akrck02/go-3ds) | Go on the Nintendo 3DS |
+| [Go Renderer](https://github.com/akrck02/go-renderer) | draws 3D scenes and flat interfaces |
+| [Go UI](https://github.com/akrck02/go-ui) | buttons, panels and whole applications |
+| [Go UI for Android](https://github.com/akrck02/go-ui-android) | Android apps that look like Android's own |
+| [Go Sound](https://github.com/akrck02/go-sound) | sound and music |
+| [Go Scene Builder](https://github.com/akrck02/go-scene-builder) | 3D scenes from a flat map |
+| **Go Simulator** (this one) | simulations that change a scene |
+| [Go Terrain Simulator](https://github.com/akrck02/go-simulator-terrain) | ground shaped by rivers |
+| [Go Climate Simulator](https://github.com/akrck02/go-simulator-climate) | weather and biomes |
+| [Go Flora Simulator](https://github.com/akrck02/go-simulator-flora) | forests that grow |
+| [Go Urban Simulator](https://github.com/akrck02/go-simulator-urban) | towns that grow |
+| [Go Motion Simulator](https://github.com/akrck02/go-simulator-motion) | a scene that moves |
+| [Go for 3DS](https://github.com/akrck02/go-3ds) | Go on the Nintendo 3DS |
 
 > ⚠️ All of them are **educational experiments**, written with an AI assistant and pending review by their author: good for learning and playing, not for production.

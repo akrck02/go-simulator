@@ -21,7 +21,7 @@ It writes, in the output folder:
 | File | Content |
 |---|---|
 | `<stage> <time>.geojson` | Every entity with a ground shape (polygons, line strings, points at their position), with its id, kind, parent and properties, and the shape's height and width; coordinates `[x, z]` |
-| `<stage> <time> <field>.json` + `.f32` | Every field (or the stage's `snapshot_fields`) as a grid: a JSON header (`columns`, `rows`, `cell`, `extent`, `west`, `north`, `axes: east-south`) and little-endian float32 values, row by row; the relief format of go-scene-builder |
+| `<stage> <time> <field>.json` + `.f32` | Every field (or the stage's `snapshot_fields`) as a grid: a JSON header (`columns`, `rows`, `cell`, `extent`, `west`, `north`, `axes: east-south`) and little-endian float32 values, row by row; the relief format of Go Scene Builder |
 | `events.jsonl` | Every event, one JSON per line, with its origin, stage and time |
 | `objectives.json` | Every objective: when it was checked, the value found, whether it was reached and what was expected |
 
@@ -35,9 +35,9 @@ go run ./cmd/simulator -rules rules.yaml scene.glb
 go run ./cmd/simulator -rules rules.yaml -advance 80 -capture frame.png scene.glb
 ```
 
-It opens the scene with go-renderer's viewer and runs the plugins on it. It takes every viewer
+It opens the scene with Go Renderer's viewer and runs the plugins on it. It takes every viewer
 option (`-walk`, `-night`, `-look-at`, `-capture`, `-benchmark`…; see
-[go-renderer's viewer](https://github.com/akrck02/go-renderer/blob/feature/escenas-3d/docs/viewer.md)) and:
+[Go Renderer's viewer](https://github.com/akrck02/go-renderer/blob/feature/escenas-3d/docs/viewer.md)) and:
 
 | Option | Effect |
 |---|---|
@@ -72,7 +72,7 @@ scene changes:
 
 - ground shapes become meshes draped on the terrain (the scene's walkable ground), batched by
   `batch`; flat ones float `lift` over the ground and are pulled towards the camera;
-- with a `scene_style`, the batches its rules match are built by go-scene-builder, with roofs,
+- with a `scene_style`, the batches its rules match are built by Go Scene Builder, with roofs,
   facades, gates and instanced models;
 - `clear_area` removes the triangles of the named nodes whose middle falls inside the outlines,
   and the instances standing there, sparing the holes;

@@ -11,7 +11,7 @@ two places that do not scale:
 
 - **`world/vocabulary.go`**, Go constants in the host's own module. The host does not need them
   (outside `world/`, it only uses the names of anchors, which it makes itself), but having them
-  there suggests that a new simulator has to change go-simulator to add a name, and plugins in
+  there suggests that a new simulator has to change Go Simulator to add a name, and plugins in
   other languages cannot use them at all. It also goes against the engine's own rule: no plugin's
   vocabulary (cities, plants, rain…) in `world`, `host` or `protocol`.
 - **`Writes` in the `describe` message**, a list of names the host never reads. It mixes kinds
