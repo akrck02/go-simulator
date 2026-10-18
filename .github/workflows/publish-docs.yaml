@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: akrck02/papiro-deploy@main
         with:
-          title: "go-simulator"
+          title: "Go Simulator"
           description: "Simulations for go-renderer scenes, built from plugins"
           logo: "./docs/images/logo.svg"
           accent: "#7B61FF"

@@ -150,7 +150,7 @@ Give either `count` or `event`. A count with no bounds asks for at least one.
 ## `scene_style`
 
 Plugins publish data, not looks: a building is an outline, a height and some properties. A
-[go-scene-builder](https://github.com/akrck02/go-scene-builder) style file. With it, the viewer draws the batches its
+[Go Scene Builder](https://github.com/akrck02/go-scene-builder) style file. With it, the viewer draws the batches its
 rules match with the scene builder (roofs, gates, facades, bridges) instead of plain extruded
 outlines; the other batches are drawn as before. The builder needs GEOS to compile.
 

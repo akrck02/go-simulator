@@ -3,12 +3,12 @@
 ## A theatre with stagehands
 
 Picture a theatre. The **stage** shows whatever is on it and does not care what the play is about:
-that is [go-renderer](https://github.com/akrck02/go-renderer). The **stagehand** moves things between scenes: that is
-go-simulator, the host. And the **script** for each kind of change lives with specialists,
+that is [Go Renderer](https://github.com/akrck02/go-renderer). The **stagehand** moves things between scenes: that is
+Go Simulator, the host. And the **script** for each kind of change lives with specialists,
 the **plugins**: one knows how rain falls, another how forests grow, another how towns spread.
 
 <p align="center">
-  <img alt="A rules file → the go-simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="images/architecture.svg" width="880">
+  <img alt="A rules file → the Go Simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="images/architecture.svg" width="880">
 </p>
 
 A plugin never draws anything and never talks to another plugin. It reads the part of the world it
@@ -162,4 +162,4 @@ seed, a run that meets its objectives gives the same result every time.
 | `spatial` | Small 3D maths for plugins, without the renderer |
 | `snapshot` | Saves the world to files (GeoJSON, grids) and reads GeoJSON |
 | `bridge` | Builds the world from a scene and draws every change |
-| `scenebuilder` | Lets the bridge draw with go-scene-builder's style rules |
+| `scenebuilder` | Lets the bridge draw with Go Scene Builder's style rules |
