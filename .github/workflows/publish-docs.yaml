@@ -15,6 +15,7 @@ jobs:
           title: "go-simulator"
           description: "Simulations for go-renderer scenes, built from plugins"
           logo: "./docs/images/logo.svg"
+          accent: "#7B61FF"
           path: "./docs"
           isObsidianProject: false
           showFooter: true
