@@ -1,6 +1,6 @@
-# The go-simulator quest
+# The Go Simulator quest
 
-Bring a scene to life, one level at a time. Each level teaches one piece of go-simulator and ends
+Bring a scene to life, one level at a time. Each level teaches one piece of Go Simulator and ends
 with something new happening in the scene.
 
 ![The quest map: a road from START through 6 levels — Stage manager, Clockmaker, Shipwright, Herald, Harbour clerk and Conductor — to a final challenge, Fleet owner](images/quest/quest-map.svg)
@@ -19,7 +19,7 @@ code**, a **checkpoint** to know it works, and an optional **bonus**.
 ## Before you start
 
 You need Go 1.25 and GEOS (`sudo apt install libgeos-dev`, `brew install geos`), and a scene. We use
-the village from [go-scene-builder's quest](https://github.com/akrck02/go-scene-builder/blob/master/docs/2-the-quest.md):
+the village from [Go Scene Builder's quest](https://github.com/akrck02/go-scene-builder/blob/master/docs/2-the-quest.md):
 any `.glb` works, but the coordinates below fit that village (scene units are kilometres; the river
 runs east to west about 25 metres south of the centre).
 
@@ -70,7 +70,7 @@ quest/
 #### The idea
 
 A theatre's **stage manager** does not act: they follow a **script** that says who comes on, when,
-and what they do. go-simulator is the stage manager, the **rules file** is the script, and the
+and what they do. Go Simulator is the stage manager, the **rules file** is the script, and the
 **plugins** are the actors: separate programs, each knowing how to do a few things (*rules*).
 
 The motion plugin knows how to turn the sun, blow the wind and drift the clouds.

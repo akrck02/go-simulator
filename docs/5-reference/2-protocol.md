@@ -122,7 +122,7 @@ The host fills `origin` and `stage`; a plugin sends `time` and `changes`.
 {"op": "clear_area", "area": {"outlines": [[[0, 0], [1, 0], [1, 1]]], "keep": [], "nodes": ["forest"]}}
 ```
 
-**Entity:** `id`, `kind`, `parent`, `transform` (16 numbers, column-major, as go-renderer),
+**Entity:** `id`, `kind`, `parent`, `transform` (16 numbers, column-major, as Go Renderer),
 `shape`, `properties`. In a `modify`, set members replace; properties merge, and a null removes one.
 
 **Shape:** `mesh`, `primitive` (`box`) with `size` and `offset`, `outline`, `line` with `width`,
