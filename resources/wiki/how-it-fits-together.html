@@ -8,7 +8,7 @@ go-simulator, the host. And the <strong>script</strong> for each kind of change 
 the <strong>plugins</strong>: one knows how rain falls, another how forests grow, another how towns spread.</p>
 
 <p align="center">
-  <img alt="A rules file → the go-simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="images/architecture.svg" width="880">
+  <img alt="A rules file → the go-simulator host, which keeps the world and talks to the plugins (terrain, climate, flora, urban, motion or your own) over the protocol → cmd/simulate writes files, cmd/simulator draws the scene in the viewer" src="./images/architecture.svg" width="880">
 </p>
 
 <p>A plugin never draws anything and never talks to another plugin. It reads the part of the world it
